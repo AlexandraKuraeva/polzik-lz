@@ -43,3 +43,24 @@ export async function fetchUserById(id) {
 		throw new Error('Failed to fetch invoice.')
 	}
 }
+
+
+export async function fetchTransactions({ userId }) {
+
+
+	
+	try {
+		const { data, error } = await supabase
+			.from('transactions')
+			.select('*')
+			.eq('user_id', userId)
+			.order('created_at', { ascending: false })
+
+			return data
+	}catch (error) {
+		console.error('Database Error:', error)
+		throw new Error('Failed to fetch invoice.')
+	}
+
+	
+}
