@@ -2,13 +2,16 @@
 import {fetchTransactions} from "@/app/lib/data";
 import TypeOperation from "@/app/ui/user/type-operation";
 import {formatDateToLocal} from "@/app/lib/utils";
-export default async function HistoryTransactionsTable({ userId }) {
 
-	const transactions = await fetchTransactions( { userId });
-	console.log(transactions);
+
+export default async function HistoryTransactionsTable( {userId} ) {
+
+			const transactions = await fetchTransactions(  userId );
+			
+		
 	return (
 		<>
-			<div className='mt-6 flow-root'>
+			<div className='flex w-full flex-col md:col-span-4'>
 				<div className='inline-block min-w-full align-middle'>
 					<div className='rounded-lg bg-gray-50 p-2 md:pt-0'>
 						<div className='md:hidden'>
@@ -91,6 +94,7 @@ export default async function HistoryTransactionsTable({ userId }) {
 					</div>
 				</div>
 			</div>
+			
 		</>
 	)
 }

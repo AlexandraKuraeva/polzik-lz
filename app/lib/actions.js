@@ -1,10 +1,9 @@
 import { supabase } from './data'
+import { revalidatePath } from 'next/cache';
 
 export async function actionTransaction(prevState, formData) {
 
-	for(const [key, value] of formData.entries()){
-		console.log(key, value);
-	}
+	
 	const userId = formData.get('userId')
 	const amount = parseInt(formData.get('amount'), 10)
 	const type = formData.get('type')
@@ -32,5 +31,6 @@ export async function actionTransaction(prevState, formData) {
 	 }catch(error){
 	 	return { message: 'Ошибка: не удалось создать транзакцию', errors: {} }
 	 }
+	
 	
 }

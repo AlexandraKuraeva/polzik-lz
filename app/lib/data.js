@@ -35,8 +35,9 @@ export async function fetchUserById(id) {
 
 		if (error) throw error
 
-		console.log(id);
+		
 		const user = data
+
 		return user
 	} catch (error) {
 		console.error('Database Error:', error)
@@ -45,16 +46,15 @@ export async function fetchUserById(id) {
 }
 
 
-export async function fetchTransactions({ userId }) {
+export async function fetchTransactions( userId ) {
 
-
-	
 	try {
 		const { data, error } = await supabase
 			.from('transactions')
 			.select('*')
 			.eq('user_id', userId)
 			.order('created_at', { ascending: false })
+
 
 			return data
 	}catch (error) {
