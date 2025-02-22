@@ -1,12 +1,12 @@
 
-import {fetchTransactions} from "@/app/lib/data";
+
 import TypeOperation from "@/app/ui/user/type-operation";
 import {formatDateToLocal} from "@/app/lib/utils";
 
 
-export default async function HistoryTransactionsTable( {userId} ) {
+export default  function HistoryTransactionsTable( {transactions} ) {
 
-			const transactions = await fetchTransactions(  userId );
+			
 			
 		
 	return (

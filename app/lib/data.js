@@ -64,3 +64,59 @@ export async function fetchTransactions( userId ) {
 
 	
 }
+
+export async function updateTransactions( userId, amount, type, description, date ) {
+console.log("updateTransactions");
+	try{
+		const response = await supabase 
+		.from('transactions')
+		.insert({
+			user_id: userId,
+			amount,
+			type,
+			description,
+			date
+		})
+
+		return response
+
+		
+	}catch(error){
+		return { message: 'Ошибка: не удалось создать транзакцию', errors: {} }
+	}
+
+}
+
+
+export async function fetchBalance( userId ) {
+	console.log();
+	try{
+		const { data, error } = await supabase
+			.from('users')
+			.select('balance')
+			.eq('id', userId)
+			.single();
+
+		return data
+	}catch (error) {
+		console.error('Проблема с балансом', error)
+		throw new Error('Failed to fetch invoice.')
+	}
+}
+
+export async function updateBalance( userId, newBalance ) {
+	console.log(userId);
+	try{
+		const { data, error } = await supabase
+			.from('users')
+			.update({ balance: newBalance })
+			.eq('id', userId)
+			
+
+		return data
+	}catch (error) {
+		console.error('Database Error:', error)
+		throw new Error('Не удалось обновить баланс.')
+		
+	}
+}

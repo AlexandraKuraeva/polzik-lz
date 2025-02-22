@@ -14,22 +14,24 @@ import { Button } from '@/app/ui/button'
 import { actionTransaction } from '@/app/lib/actions'
 import { useActionState } from 'react'
 
-export default function Form({ user }) {
+
+export default function Form({ user, refetchTransactions }) {
 	const initialState = {
 		message: null,
 		errors: {},
+		data: {}
 	}
 
-
-
 	const [state, formAction, isProcessing] = useActionState(
-		actionTransaction,
+		async (prevState, formData) => {
+			return actionTransaction(prevState, formData, refetchTransactions)
+		},
 		initialState
 	)
 
 	return (
 		<div className='w-full md:col-span-4'>
-			<form action={formAction} >
+			<form action={formAction}>
 				<input type='hidden' name='userId' value={user.id} />
 				<div className='rounded-md bg-gray-50 p-4 md:p-6'>
 					<div className='mb-4'>
@@ -59,18 +61,18 @@ export default function Form({ user }) {
 									type='number'
 									step='0.01'
 									placeholder='Количество пользиков'
+									defaultValue={state?.data?.amount || ''}
 									className='peer block w-full rounded-md border border-gray-200 py-2 pl-10 text-sm outline-2 placeholder:text-gray-500'
 								/>
 								<CurrencyDollarIcon className='pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-500 peer-focus:text-gray-900' />
 							</div>
 						</div>
 						<div id='customer-error' aria-live='polite' aria-atomic='true'>
-							{/* {state.errors?.amount &&
-            state.errors.amount.map((error: string) => (
-              <p className="mt-2 text-sm text-red-500" key={error}>
-                {error}
-              </p>
-            ))} */}
+							{state?.errors?.amount && (
+								<p className='mt-2 text-sm text-red-500'>
+									{state.errors.amount}
+								</p>
+							)}
 						</div>
 					</div>
 
@@ -86,6 +88,7 @@ export default function Form({ user }) {
 									name='description'
 									type='text'
 									step='0.01'
+									defaultValue={state?.data?.description || ''}
 									placeholder='Описание операции'
 									className='peer block w-full rounded-md border border-gray-200 py-2 pl-10 text-sm outline-2 placeholder:text-gray-500'
 								/>
@@ -93,12 +96,11 @@ export default function Form({ user }) {
 							</div>
 						</div>
 						<div id='customer-error' aria-live='polite' aria-atomic='true'>
-							{/* {state.errors?.amount &&
-            state.errors.amount.map((error: string) => (
-              <p className="mt-2 text-sm text-red-500" key={error}>
-                {error}
-              </p>
-            ))} */}
+							{state?.errors.description && (
+								<p className='mt-2 text-sm text-red-500'>
+									{state.errors.description}
+								</p>
+							)}
 						</div>
 					</div>
 
@@ -115,6 +117,7 @@ export default function Form({ user }) {
 										name='type'
 										type='radio'
 										value='credit'
+										defaultChecked={state?.data?.type === 'credit'}
 										className='h-4 w-4 cursor-pointer border-gray-300 bg-gray-100 text-gray-600 focus:ring-2'
 									/>
 									<label
@@ -131,6 +134,7 @@ export default function Form({ user }) {
 										name='type'
 										type='radio'
 										value='debit'
+										defaultChecked={state?.data?.type === 'debit'} 
 										className='h-4 w-4 cursor-pointer border-gray-300 bg-gray-100 text-gray-600 focus:ring-2'
 									/>
 									<label
@@ -144,12 +148,11 @@ export default function Form({ user }) {
 							</div>
 						</div>
 						<div id='customer-error' aria-live='polite' aria-atomic='true'>
-							{/* {state.errors?.status &&
-            state.errors.status.map((error: string) => (
-              <p className="mt-2 text-sm text-red-500" key={error}>
-                {error}
-              </p>
-            ))} */}
+						{state?.errors?.type && (
+							<p className='mt-2 text-sm text-red-500'>
+								{state.errors.type}
+							</p>
+						)}
 						</div>
 					</fieldset>
 				</div>
