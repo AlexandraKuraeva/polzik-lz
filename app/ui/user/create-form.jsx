@@ -16,6 +16,7 @@ import { useActionState } from 'react'
 
 
 export default function Form({ user, refetchTransactions }) {
+	
 	const initialState = {
 		message: null,
 		errors: {},
