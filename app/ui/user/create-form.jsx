@@ -22,6 +22,7 @@ export default function Form({ user, refetchTransactions }) {
 		errors: {},
 		data: {}
 	}
+	
 
 	const [state, formAction, isProcessing] = useActionState(
 		async (prevState, formData) => {
@@ -154,6 +155,11 @@ export default function Form({ user, refetchTransactions }) {
 								{state.errors.type}
 							</p>
 						)}
+						{state?.errors.balance && (
+								<p className='mt-2 text-sm text-red-500'>
+									{state.errors.balance}
+								</p>
+							)}
 						</div>
 					</fieldset>
 				</div>

@@ -33,7 +33,7 @@
     ".next/types/**/*.ts",
     "**/*.ts",
     "**/*.tsx"
-  ],
+, "app/ui/login-form.jsx"  ],
   "exclude": [
     "node_modules"
   ]

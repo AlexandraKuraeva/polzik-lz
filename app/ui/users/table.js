@@ -34,7 +34,7 @@ export default async function UsersTable({
                               width={28}
                               height={28}
                             />
-                            <p>{user.id}</p>
+                            <p>{user.name}</p>
                           </div>
                         </div>
                         <p className="text-sm text-gray-500">

@@ -1,6 +1,10 @@
+'use server';
+
 import { supabase, updateTransactions, fetchBalance, updateBalance } from './data'
 import { revalidatePath } from 'next/cache';
 import { validateForm } from './utils';
+import { signIn } from '@/auth';
+import { AuthError } from 'next-auth';
 
 
 export async function actionTransaction(prevState, formData, refetchTransactions) {
@@ -22,14 +26,20 @@ export async function actionTransaction(prevState, formData, refetchTransactions
 	const transactionAmount = type === "credit" ? amount : -amount;
 
 	 try{
-	 	
-		const response = await updateTransactions(userId, amount, type, description, date)
 		const {balance} = await fetchBalance(userId)
-		
 		const newBalance = balance + transactionAmount;
-		console.log(balance + transactionAmount);
+
+		if(newBalance < 0){
+
+			return { message: 'Недостаточно средств', errors: { balance: 'Недостаточно средств'}, data: { amount, type, description } }
+		}
 
 		const data = await updateBalance(userId, newBalance)
+
+
+		const response = await updateTransactions(userId, amount, type, description, date)
+		
+		
 	
 		refetchTransactions()
 
@@ -38,4 +48,20 @@ export async function actionTransaction(prevState, formData, refetchTransactions
 	 }
 	
 	
+}
+
+export async function authenticate( prevState, formData){
+	try {
+    await signIn('credentials', formData);
+  } catch (error) {
+    if (error instanceof AuthError) {
+      switch (error.type) {
+        case 'CredentialsSignin':
+          return 'Invalid credentials.';
+        default:
+          return 'Something went wrong.';
+      }
+    }
+    throw error;
+  }
 }
