@@ -1,0 +1,16 @@
+
+<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+	 viewBox="0 0 180 216" style="enable-background:new 0 0 180 216;" xml:space="preserve">
+<style type="text/css">
+	.st0{fill:#60FF60;}
+</style>
+<g>
+	<g>
+		<path class="st0" d="M60.2,0C26.9,0,0,26.9,0,60.2V108h36V72h36v36H36v36h47.8c33.2,0,60.2-26.9,60.2-60.2V0H60.2z"/>
+	</g>
+	<g>
+		<rect x="36" y="108" width="36" height="108"/>
+		<polygon points="144,72 72,72 72,108 144,108 144,216 180,216 180,72 162,72 		"/>
+	</g>
+</g>
+</svg>
