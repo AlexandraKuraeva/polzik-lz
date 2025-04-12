@@ -26,7 +26,12 @@ export default function Form({ user, refetchTransactions }) {
 
 	const [state, formAction, isProcessing] = useActionState(
 		async (prevState, formData) => {
-			return actionTransaction(prevState, formData, refetchTransactions)
+			const result = await actionTransaction(prevState, formData)
+
+			if(result){
+				refetchTransactions()
+			}
+			return result
 		},
 		initialState
 	)
@@ -98,7 +103,7 @@ export default function Form({ user, refetchTransactions }) {
 							</div>
 						</div>
 						<div id='customer-error' aria-live='polite' aria-atomic='true'>
-							{state?.errors.description && (
+							{state?.errors?.description && (
 								<p className='mt-2 text-sm text-red-500'>
 									{state.errors.description}
 								</p>
@@ -155,7 +160,7 @@ export default function Form({ user, refetchTransactions }) {
 								{state.errors.type}
 							</p>
 						)}
-						{state?.errors.balance && (
+						{state?.errors?.balance && (
 								<p className='mt-2 text-sm text-red-500'>
 									{state.errors.balance}
 								</p>

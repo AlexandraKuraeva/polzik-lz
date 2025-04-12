@@ -7,7 +7,7 @@ import { signIn } from '@/auth';
 import { AuthError } from 'next-auth';
 
 
-export async function actionTransaction(prevState, formData, refetchTransactions) {
+export async function actionTransaction(prevState, formData) {
 
 	
 	const userId = formData.get('userId')
@@ -17,7 +17,6 @@ export async function actionTransaction(prevState, formData, refetchTransactions
 
 	
 	const  errors  = validateForm(amount, type, description)
-
 	 if (Object.keys(errors).length > 0) {
 	 	return { message: 'Ошибка валидации', errors, data: { amount, type, description } }
 	 }
@@ -40,11 +39,11 @@ export async function actionTransaction(prevState, formData, refetchTransactions
 		const response = await updateTransactions(userId, amount, type, description, date)
 		
 		
-	
-		refetchTransactions()
+		return response
 
 	 }catch(error){
-	 	return { message: 'Ошибка: не удалось создать транзакцию', errors: {} }
+		console.log(error);
+	 	return { message: 'Ошибка в actions: не удалось создать транзакцию', errors: {} }
 	 }
 	
 	

@@ -88,7 +88,7 @@ export async function fetchTransactions( userId ) {
 export async function updateTransactions( userId, amount, type, description, date ) {
 console.log("updateTransactions");
 	try{
-		const response = await supabase 
+		const { data: response, error} = await supabase 
 		.from('transactions')
 		.insert({
 			user_id: userId,
@@ -97,12 +97,13 @@ console.log("updateTransactions");
 			description,
 			date
 		})
+		.select()
 
 		return response
 
 		
 	}catch(error){
-		return { message: 'Ошибка: не удалось создать транзакцию', errors: {} }
+		return { message: 'Ошибка в базе: не удалось создать транзакцию', errors: {} }
 	}
 
 }
