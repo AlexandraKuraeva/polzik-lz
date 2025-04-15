@@ -42,16 +42,16 @@ export default function Page() {
 				<>
 					<Breadcrumbs
 						breadcrumbs={[
-							{ label: 'Users', href: '/dashboard/users' },
+							{ label: 'Сотрудники', href: '/dashboard/users' },
 							{
-								label: `Profile ${user.name}`,
+								label: `Профиль ${user.name}`,
 								href: `/dashboard/users/${id}`,
 								active: true,
 							},
 						]}
 					/>
 
-					<Suspense fallback={<div>Loading...</div>}>
+					<Suspense fallback={<div>Загрузка...</div>}>
 						<Card title='Баланс' value={user.balance} type='collected' />
 					</Suspense>
 

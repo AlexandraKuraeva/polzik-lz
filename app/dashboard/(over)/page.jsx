@@ -1,14 +1,14 @@
-import Link from 'next/link';
+'use client'
 
-export default async  function Dashboard(){
+
+import Link from 'next/link';
+import { Suspense } from 'react';
+import { Card } from '@/app/ui/user/card'
+
+export default   function Dashboard(){
 	
 	
-	return (
-		<div>
-			
-			<Link href="dashboard/users" className='text-blue-600  '>Любимые роднули!</Link>
-				
-		</div>
-	);
+
+  return <div>Привет</div>
 };
 

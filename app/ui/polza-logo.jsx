@@ -8,9 +8,9 @@ export default function PolzaLogo() {
 		>
       
       <Image
-        src="/logo/P-polza.svg"
+        src="/logo/polza-logo.png"
         alt="Logo"
-        width={80}
+        width={280}
         height={80}
         priority
       />
