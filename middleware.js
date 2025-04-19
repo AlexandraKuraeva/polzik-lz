@@ -1,9 +1,27 @@
-import NextAuth from 'next-auth'
-import { authConfig} from './auth.config'
 
-export default NextAuth(authConfig).auth;
+import { auth } from "@/auth"
+import { NextResponse } from "next/server"
 
+
+
+export default auth((req) => {
+  const { auth } = req
+	
+   const isLoggedIn = !!auth?.user
+   const isProtectedRoute = ["/dashboard", "/admin"].some((path) =>
+     req.nextUrl.pathname.startsWith(path)
+   )
+
+   if (isProtectedRoute && !isLoggedIn) {
+     const loginUrl = new URL("/login", req.url)
+     loginUrl.searchParams.set("callbackUrl", req.nextUrl.pathname)
+     return NextResponse.redirect(loginUrl)
+   }
+
+   return NextResponse.next()
+})
+
+// Указываем маршруты, на которые работает middleware
 export const config = {
-  // https://nextjs.org/docs/app/building-your-application/routing/middleware#matcher
-  matcher: ['/((?!api|_next/static|_next/image|.*\\.png$).*)'],
-};
+	matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+}

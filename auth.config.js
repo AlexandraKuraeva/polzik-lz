@@ -1,33 +1,56 @@
+import Credentials from "next-auth/providers/credentials";
+import { getUser } from './app/lib/data'
 export const authConfig = {
+
+  providers: [
+		Credentials({
+			credentials: {
+				email: {  },
+				password: { },
+			},
+
+			async authorize(credentials){
+
+				const user = await getUser(credentials.email)
+        
+        if (!user) return null
+        return user
+
+			}
+		}),
+	],
+
   pages: {
     signIn: '/login',
   },
-  secret: process.env.NEXTAUTH_SECRET, 
+
 	callbacks: {
-    authorized({ auth, request: { nextUrl } }) {
+    async authorized({ auth, request: { nextUrl } }) {
+
       const isLoggedIn = !!auth?.user;
+
+      console.log("isLoggedIn", isLoggedIn);
+
       const isOnDashboard = nextUrl.pathname.startsWith('/dashboard');
+
       if (isOnDashboard) {
+
         if (isLoggedIn) return true;
-        return false; // Redirect unauthenticated users to login page
+
+        return false; 
+
       } else if (isLoggedIn) {
+       
         return Response.redirect(new URL('/dashboard', nextUrl));
       }
       return true;
     },
-    async jwt({ token, user }) {
-      if (user) token.user = user;
-      return token;
-    },
-    async session({ session, token }) {
-      if (token) {
-        session.user.id = token.id
-        session.user.role = token.role
-      }
-      return session
-    }
+
+
   },
-  providers: [], // Add providers with an empty array for now
+  
+  
+	
   
 
 } ;

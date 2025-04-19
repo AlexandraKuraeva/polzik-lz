@@ -46,6 +46,7 @@ export async function fetchUserById(id) {
 }
 
 export async function getUser(email) {
+	
 	try {
 		const { data, error } = await supabase
 			.from('users')
@@ -57,7 +58,7 @@ export async function getUser(email) {
 
 		
 		const user = data
-
+console.log("user", user);
 		return user
 	} catch (error) {
 		console.error('Database Error:', error)

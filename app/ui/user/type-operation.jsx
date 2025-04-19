@@ -8,7 +8,7 @@ export default function TypeOperation({ type }) {
 	return (
 		<span
 			className={clsx(
-				'inline-flex items-center rounded-full px-2 py-1 text-xs',
+				'inline-flex items-center rounded-full px-2 py-1 text-xs w-32  container justify-between ',
 				{
 					'bg-gray-100 text-gray-500': type === 'debit',
 					'bg-green-500 text-white': type === 'credit',
