@@ -6,15 +6,7 @@ export default function PolzaLogo() {
 		<div
 			className={`${lusitana.className} flex flex-row items-center leading-none text-white`}
 		>
-      
-      <Image
-        src="/logo/polza-logo.png"
-        alt="Logo"
-        width={280}
-        height={80}
-        priority
-      />
-      
+			<img src={'/logo/polza-logo.png'} alt='' />
 		</div>
 	)
 }
