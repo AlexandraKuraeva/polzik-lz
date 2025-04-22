@@ -13,7 +13,6 @@ export default function PolzaLogo() {
         width={280}
         height={80}
         priority
-        unoptimized
       />
       
 		</div>
