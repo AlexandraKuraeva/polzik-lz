@@ -8,7 +8,7 @@ export default function PolzaLogo() {
 		>
       
       <Image
-        src="/logo/polza-logo.png"
+        src="/logo.png"
         alt="Logo"
         width={280}
         height={80}
