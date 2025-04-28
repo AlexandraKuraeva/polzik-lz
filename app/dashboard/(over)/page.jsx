@@ -18,13 +18,10 @@ export default async   function Dashboard(){
   const currentUser = await getUser(session.user.email)
   const transactions = await fetchTransactions(currentUser.id)
 
-  console.log(session.user);
-  console.log(transactions);
-
   return <>
 
-   <div>
-    Привет  <span className="font-bold text-primary text-xl">{session ?.user?.name}</span>
+   <div className="mb-5 flex items-center gap-2">
+    Привет,  <span className="font-bold text-primary text-xl">{session ?.user?.name}!</span>
    <p>А какую пользу принес ты?</p>
    </div> 
   	<div className="grid grid-cols-1 gap-6 md:grid-cols-4 lg:grid-cols-2">

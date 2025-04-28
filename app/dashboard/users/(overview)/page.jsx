@@ -3,8 +3,7 @@ import UsersTable from '@/app/ui/users/table';
 
 export default async  function Users(){
 	const users = await fetchUsers();
-	console.log(users);
-	
+
 	return (
 		<div>
 			

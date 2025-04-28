@@ -10,7 +10,7 @@ export default async function UsersTable({
   return (
     <div className="w-full">
        <h1 className={`${lusitana.className} mb-8 text-xl md:text-2xl`}>
-        Users
+        Сотрудники
       </h1> 
       {/* <Search placeholder="Search users..." /> */}
       <div className="mt-6 flow-root">
@@ -58,13 +58,13 @@ export default async function UsersTable({
                 <thead className="rounded-md bg-gray-50 text-left text-sm font-normal">
                   <tr>
                     <th scope="col" className="px-4 py-5 font-medium sm:pl-6">
-                      Name
+                      Имя
                     </th>
                     <th scope="col" className="px-3 py-5 font-medium">
                       Email
                     </th>
                     <th scope="col" className="px-3 py-5 font-medium">
-                      Balance
+                      Баланс
                     </th>
                    
                   </tr>
