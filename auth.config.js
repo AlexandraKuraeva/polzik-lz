@@ -11,9 +11,20 @@ export const authConfig = {
 
 			async authorize(credentials){
 
+        if(!credentials?.email || !credentials?.password){
+          throw new Error("Email и пароль обязательны");
+        }
+
 				const user = await getUser(credentials.email)
         
-        if (!user) return null
+        if (!user) {
+          throw new Error("Пользователь не найден");
+        }
+
+        if (credentials.password !== user.password) {
+          throw new Error("Неверный пароль");
+        }
+        
         return user
 
 			}

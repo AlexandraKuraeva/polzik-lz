@@ -50,15 +50,21 @@ export async function actionTransaction(prevState, formData) {
 }
 
 export async function authenticate( prevState, formData){
+	
 	try {
+
     await signIn('credentials', formData);
+
+		return { success: true, message: 'Authorization successful!' };
+
   } catch (error) {
+
     if (error instanceof AuthError) {
       switch (error.type) {
         case 'CredentialsSignin':
-          return 'Invalid credentials.';
+          return {success: false, message: 'Invalid credentials.'}
         default:
-          return 'Something went wrong.';
+          return { success: false, message: 'Something went wrong.' };
       }
     }
     throw error;

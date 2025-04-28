@@ -8,18 +8,29 @@ import {
 import { ArrowRightIcon } from '@heroicons/react/20/solid';
 import { Button } from './button';
 
-import { useActionState } from 'react'
+import { useActionState, useState, useEffect } from 'react'
 import { authenticate } from '@/app/lib/actions';
 import { useSearchParams } from 'next/navigation';
 
 export default function LoginForm() {
 
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [errorMessage, setErrorMessage] = useState(null)
+
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
-  const [errorMessage, formAction, isPending] = useActionState(
+  const [error, formAction, isPending] = useActionState(
     authenticate,
-    undefined,
+    {email, password}
   );
+
+  useEffect(() => {
+    if (error) {
+      setErrorMessage(error.message); 
+    }
+  }, [error]);
+
 
   return (
     <form action={formAction} className="space-y-3">
@@ -43,6 +54,8 @@ export default function LoginForm() {
                 type="email"
                 name="email"
                 placeholder="Enter your email address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 required
               />
               <AtSymbolIcon className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-500 peer-focus:text-gray-900" />
@@ -63,6 +76,8 @@ export default function LoginForm() {
                 name="password"
                 placeholder="Enter password"
                 required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)} 
                 minLength={6}
               />
               <KeyIcon className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-500 peer-focus:text-gray-900" />
@@ -71,7 +86,7 @@ export default function LoginForm() {
         </div>
         <input type="hidden" name="redirectTo" value={callbackUrl} />
         <Button className="mt-4 w-full " aria-disabled={isPending}>
-          Войти <ArrowRightIcon className="ml-auto h-5 w-5 text-white" />
+        {isPending ? 'Загружается...' : 'Войти'}<ArrowRightIcon className="ml-auto h-5 w-5 text-white" />
         </Button>
         <div className="flex h-8 items-end space-x-1">
         {errorMessage && (
