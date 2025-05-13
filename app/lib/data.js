@@ -35,7 +35,6 @@ export async function fetchUserById(id) {
 
 		if (error) throw error
 
-		
 		const user = data
 
 		return user

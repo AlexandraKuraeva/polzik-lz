@@ -8,21 +8,35 @@ import {
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import clsx from 'clsx';
+import { useSession } from "next-auth/react"
 
 // Map of links to display in the side navigation.
 // Depending on the size of the application, this would be stored in a database.
-const links = [
-  { name: 'Главная', href: '/dashboard', icon: HomeIcon },
-  {
-    name: 'Сотрудники',
-    href: '/dashboard/users',
-    icon: UserGroupIcon ,
-  },
-  { name: 'Полезная информация', href: '/dashboard/info', icon: DocumentDuplicateIcon },
-];
+
 
 export default function NavLinks() {
+
   const pathname = usePathname();
+
+  const { data }  = useSession();
+  
+  const role = data?.user?.role
+
+  console.log(role);
+
+  const links = [
+    { name: 'Главная', href: '/dashboard', icon: HomeIcon },
+   
+    ...(role === 'admin' ? [
+      {
+        name: 'Сотрудники',
+        href: '/dashboard/users',
+        icon: UserGroupIcon,
+      }
+    ] : []),
+    { name: 'Полезная информация', href: '/dashboard/info', icon: DocumentDuplicateIcon },
+  ];
+
   return (
     <>
       {links.map((link) => {
