@@ -16,18 +16,29 @@ export const authConfig = {
         }
 
 				const user = await getUser(credentials.email)
-        
+
         if (!user) {
+
           throw new Error("Пользователь не найден");
+
         }
 
         if (credentials.password !== user.password) {
-          throw new Error("Неверный пароль");
-        }
-        
-        return user
 
-			}
+          throw new Error("Неверный пароль");
+          
+        }
+        console.log(user.id, user.name );
+        return {
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          name: user.name,
+        };
+
+			},
+
+     
 		}),
 	],
 
@@ -36,26 +47,41 @@ export const authConfig = {
   },
 
 	callbacks: {
-    async authorized({ auth, request: { nextUrl } }) {
+     async authorized({ auth, request: { nextUrl } }) {
 
-      const isLoggedIn = !!auth?.user;
+       const isLoggedIn = !!auth?.user;
 
-      console.log("isLoggedIn", isLoggedIn);
+       const isOnDashboard = nextUrl.pathname.startsWith('/dashboard');
 
-      const isOnDashboard = nextUrl.pathname.startsWith('/dashboard');
+       if (isOnDashboard) {
 
-      if (isOnDashboard) {
+         if (isLoggedIn) return true;
 
-        if (isLoggedIn) return true;
+         return false; 
 
-        return false; 
+       }
+       return true;
+     },
 
-      } else if (isLoggedIn) {
-       
-        return Response.redirect(new URL('/dashboard', nextUrl));
+    async jwt({ token, user }) {
+      console.log(user);
+      if (user) {
+        token.id = user.id;
+        token.role = user.role;
+        token.name = user.name;
       }
-      return true;
+
+      console.log("token", token);
+      return token;
     },
+
+    async session({ session, token }) {
+      console.log("session", session);
+      session.user.id = token.id;
+      session.user.role = token.role;
+      session.user.name = token.name;
+      return session;
+    }
 
 
   },
