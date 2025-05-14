@@ -17,7 +17,7 @@ export default async   function Dashboard(){
 	const session = await auth()
   const currentUser = await getUser(session.user.email)
   const transactions = await fetchTransactions(currentUser.id)
-  console.log(session);
+
   return <>
 
    <div className="mb-5 flex items-center gap-2">

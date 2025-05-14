@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import clsx from 'clsx';
 import { useSession } from "next-auth/react"
+import { useEffect } from 'react';
 
 // Map of links to display in the side navigation.
 // Depending on the size of the application, this would be stored in a database.
@@ -18,11 +19,15 @@ export default function NavLinks() {
 
   const pathname = usePathname();
 
-  const { data }  = useSession();
+  const { data, update }  = useSession();
   
   const role = data?.user?.role
 
-  console.log(role);
+  // console.log(role);
+
+  useEffect(() => {
+    update()
+  }, [])
 
   const links = [
     { name: 'Главная', href: '/dashboard', icon: HomeIcon },
