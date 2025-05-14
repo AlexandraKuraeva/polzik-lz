@@ -1,5 +1,6 @@
 import Credentials from "next-auth/providers/credentials";
 import { getUser } from './app/lib/data'
+
 export const authConfig = {
 	providers: [
 		Credentials({
@@ -22,7 +23,7 @@ export const authConfig = {
 				if (credentials.password !== user.password) {
 					throw new Error('Неверный пароль')
 				}
-				console.log(user.id, user.name)
+				// console.log(user.id, user.name)
 				return {
 					id: user.id,
 					email: user.email,
@@ -51,24 +52,26 @@ export const authConfig = {
 			return true
 		},
 
-		async jwt({ token, user, account }) {
-      console.log("jwt", account);
+		async jwt({ token, user }) {
+     
 			if (user) {
 				token.id = user.id
 				token.role = user.role
 				token.name = user.name
 			}
 
-			console.log('token', token)
+		
 			return token
 		},
 
 		async session({ session, token }) {
+
 			if (token) {
 				session.user.id = token.id
 				session.user.role = token.role
 				session.user.name = token.name
 			}
+
 			return session
 		},
 	},
