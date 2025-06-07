@@ -1,7 +1,9 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { lusitana } from '@/app/ui/fonts';
+import { UserAvatar } from '@/app/ui/user/user-avatar.jsx';
 // import Search from '@/app/ui/search';
+
 
 export default async function UsersTable({
 	users}) {
@@ -27,13 +29,14 @@ export default async function UsersTable({
                       <Link href={`${url}/${user.id}`}>
                         <div className="mb-2 flex items-center">
                           <div className="flex items-center gap-3">
-                            <Image
+                            {/* <Image
                               src={user.image_url}
                               className="rounded-full"
                               alt={`${user.name}'s profile picture`}
                               width={28}
                               height={28}
-                            />
+                            /> */}
+                            <UserAvatar name={user.name} />
                             <p>{user.name}</p>
                           </div>
                         </div>
@@ -76,13 +79,14 @@ export default async function UsersTable({
                       <td className="whitespace-nowrap bg-white py-5 pl-4 pr-3 text-sm text-black group-first-of-type:rounded-md group-last-of-type:rounded-md sm:pl-6">
                       <Link href={`${url}/${user.id}`}>
                         <div className="flex items-center gap-3">
-                          <Image
+                          {/* <Image
                             src={user.image_url}
                             className="rounded-full"
                             alt={`${user.name}'s profile picture`}
                             width={28}
                             height={28}
-                          />
+                          /> */}
+                          <UserAvatar name={user.name} />
                           <p>{user.name}</p>
                         </div>
                         </Link>
