@@ -9,6 +9,8 @@ import { getUser, fetchTransactions } from '@/app/lib/data'
 import Image from 'next/image';
 import { RevenueChartSkeleton } from '@/app/ui/skeletons'
 import HistoryTransactionsTable from '@/app/ui/user/table'
+import clsx from 'clsx';
+import { lusitana } from '@/app/ui/fonts'
 
 
 
@@ -20,8 +22,8 @@ export default async   function Dashboard(){
 
   return <>
 
-   <div className="mb-5 flex items-center gap-2">
-    Привет,  <span className="font-bold text-primary text-xl">{session ?.user?.name}!</span>
+   <div className={clsx(lusitana.className, 'flex text-xl md:text-2xl')}>
+    Привет, &nbsp;<span className="font-bold text-primary md:text-2xl "> { session ?.user?.name}! &nbsp;</span>
    <p>А какую пользу принес ты?</p>
    </div> 
   	<div className="grid grid-cols-1 gap-6 md:grid-cols-4 lg:grid-cols-2">

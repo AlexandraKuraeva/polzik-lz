@@ -1,22 +1,14 @@
-'use client'
+import PointsTable from '@/app/ui/info/points-table'
+import clsx from 'clsx'
+import { lusitana } from '@/app/ui/fonts'
 
-import { useSession } from 'next-auth/react';
-import Link from 'next/link';
-import { Suspense } from 'react';
-import { Card } from '@/app/ui/user/card'
-import { auth } from '@/auth';
-
-
-export default   function Info(){
-	
-
-	return(
-		<div>
-			<h1>Информация</h1>
-			<p>Здесь будет информация о том, как можно получить пользики</p>
-			
-		</div>
+export default function Info() {
+	return (
+		<>
+			<div className={clsx(lusitana.className, 'flex text-xl md:text-2xl')}>
+			Как заработать и на что потратить пользики
+			</div>
+			<PointsTable />
+		</>
 	)
-		
-};
-
+}
