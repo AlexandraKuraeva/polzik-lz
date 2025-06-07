@@ -141,3 +141,65 @@ export async function updateBalance( userId, newBalance ) {
 		
 	}
 }
+
+export async function fetchPointsActions(){
+	try{
+		const { data, error } = await supabase
+			.from('point_actions')
+			.select('*')
+		
+		return data
+	}catch (error) {
+		console.error('Database Error:', error)
+		throw new Error('Failed to fetch points actions.')
+	}
+}
+
+// Удалить после заполнения бд
+
+const pointActions = [
+  { title: "Написание кейса с нуля", points: 10 },
+  { title: "Написание полезной статьи в корпоративное вики", points: 5 },
+  { title: "Создание обучающего материала для команды", points: 8 },
+  { title: "Подготовка доклада/презентации для команды, сбор команды для его презентации", points: 10 },
+  { title: "Разработка и внедрение улучшений в процесс или создание нового процесса, улучшение сервиса/ускорение", points: 6 },
+  { title: "Допродажа услуги клиенту или участие в допродаже/продаже", points: 10 },
+  { title: "Участие во внешних конференциях", points: 5 },
+  { title: "За выполнение KPI на проекте", points: 5 },
+  { title: "За положительную ОС от клиента", points: 3 },
+  { title: "За отзыв от клиента", points: 10 },
+  { title: "За проведение эксперимента на проекте и написание статьи по результату", points: 10 },
+  { title: "Приведи друга", points: 30 },
+  { title: "За успешное прохождение курса, например, по SEO (кроме конверсий)", points: 10 },
+  { title: "За самостоятельное написание статьи в блог", points: 6 },
+  { title: "За помощь в написании статьи", points: 2 },
+  { title: "Конспект по прочитанной книге для команды", points: 10 }
+];
+
+export  async function insertPointActions() {
+  for (const action of pointActions) {
+    try {
+      const { data: response, error} = await supabase
+				.from('point_actions')
+				.insert({
+					description: action.title,
+					sum: action.points,
+					type: 'earn'
+				})
+				.select()
+
+			if (response.error) {
+				console.error(`Ошибка сети при добавлении "${action.title}":`, response.error);
+			}
+
+
+			
+
+
+    } catch (err) {
+      console.error(`Ошибка сети при добавлении "${action.title}":`, err);
+    }
+  }
+}
+
+
