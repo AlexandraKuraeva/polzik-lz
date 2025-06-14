@@ -1,8 +1,8 @@
 'use server';
 
-import { supabase, updateTransactions, fetchBalance, updateBalance } from './data'
+import { supabase, updateTransactions, fetchBalance, updateBalance, createUser } from './data'
 import { revalidatePath } from 'next/cache';
-import { validateForm } from './utils';
+import { validateForm, validateFormCreateUser } from './utils';
 import { signIn } from '@/auth';
 import { AuthError } from 'next-auth';
 
@@ -69,4 +69,33 @@ export async function authenticate( prevState, formData){
     }
     throw error;
   }
+}
+
+export async function actionCreateUser(prevState,formData) {
+
+	console.log('actionCreateUser');
+	const email = formData.get('email');
+	const password = formData.get('password');
+	const name = formData.get('name');
+	const role = formData.get('role');
+
+	const errors = validateFormCreateUser(name, email, password, role)
+	
+	if (Object.keys(errors).length > 0) {
+		return { message: 'Ошибка валидации', errors, data: { name, email, password, role } }
+	}
+	
+	try{
+			console.log('formData', [...formData.entries()])
+		const newUser = await createUser(name, email, password, role)
+	
+
+		
+		
+		return newUser
+	}
+	catch(error){
+		console.log(error);
+		return { message: 'Ошибка в actions: не удалось создать пользователя', errors: {} }
+	}
 }

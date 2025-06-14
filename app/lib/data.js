@@ -9,11 +9,12 @@ export const supabase = createClient(
 
 
 export async function fetchUsers() {
+	console.log('fetchUsers');
 	try {
 		const { data, error } = await supabase
 			.from('users')
 			.select('*')
-			.order('name', { ascending: true })
+			.order('created_at', { ascending: false })
 
 		if (error) throw error
 
@@ -202,4 +203,48 @@ export  async function insertPointActions() {
   }
 }
 
+
+
+export async function createUser( name, email, password, role ) {
+
+	try{
+		const { data: response, error} = await supabase 
+		.from('users')
+		.insert({
+			
+			name: name,
+			email: email,
+			password: password,
+			role: role,
+			balance: 0,
+		
+		})
+		.select()
+
+		return response
+
+		
+	}catch(error){
+		return { message: 'Ошибка в базе: не удалось создать пользователя', errors: {} }
+	}
+
+}
+
+
+export async function deleteUser( id ) {
+
+	try{
+		const { data: response, error} = await supabase 
+		.from('users')
+		.delete()
+		.eq('id', id)
+		.select()
+
+		return response
+
+		
+	}catch(error){
+		return { message: 'Ошибка в базе: не удалось удалить пользователя', errors: {} }
+	}
+}
 
