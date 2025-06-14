@@ -23,3 +23,20 @@ export function validateForm( amount, type, description ) {
 
 	return errors
 }
+
+export function validateFormCreateUser( name, email, password, role ) {
+	
+	let errors = {}
+
+
+	
+	if (!name || name.trim() === '') errors.name = 'Введите имя пользователя'
+	if(name.length < 3) errors.name = 'Имя должно быть не менее 3 символов'
+	if (!email || email.trim() === '') errors.email = 'Введите email пользователя'
+	if (!password || password.trim() === '') errors.password = 'Введите пароль пользователя'
+	if(password.length < 6) errors.password = 'Пароль должен быть не менее 6 символов'
+	if (!role) errors.role = 'Выберите роль пользователя'
+
+	return errors
+}
+
