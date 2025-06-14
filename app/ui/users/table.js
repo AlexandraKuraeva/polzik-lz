@@ -1,19 +1,41 @@
+"use client"
+
+
 import Image from 'next/image';
 import Link from 'next/link';
 import { lusitana } from '@/app/ui/fonts';
 import { UserAvatar } from '@/app/ui/user/user-avatar.jsx';
 // import Search from '@/app/ui/search';
+import { Button } from '@/app/ui/button'
+import { TrashIcon } from '@heroicons/react/24/outline';
+import { deleteUser } from '@/app/lib/data'
+import { TransactionsTableSkeleton } from '@/app/ui/skeletons'
 
 
-export default async function UsersTable({
-	users}) {
+export default  function UsersTable({
+	users, isLoading, refetchUsers}) {
+
+      if (isLoading) {
+        return (
+          < TransactionsTableSkeleton />
+        )
+      }
 
     const url = '/dashboard/users';
+
+   async function handleDelete(id) {
+      
+     const delUser = await deleteUser(id);
+
+     if(delUser){
+      
+
+      refetchUsers();
+     }
+    }
   return (
     <div className="w-full">
-       <h1 className={`${lusitana.className} mb-8 text-xl md:text-2xl`}>
-        Сотрудники
-      </h1> 
+      
       {/* <Search placeholder="Search users..." /> */}
       <div className="mt-6 flow-root">
         <div className="overflow-x-auto">
@@ -28,7 +50,7 @@ export default async function UsersTable({
                     <div className="flex items-center justify-between border-b pb-4">
                       <Link href={`${url}/${user.id}`}>
                         <div className="mb-2 flex items-center">
-                          <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-4">
                             {/* <Image
                               src={user.image_url}
                               className="rounded-full"
@@ -38,6 +60,7 @@ export default async function UsersTable({
                             /> */}
                             <UserAvatar name={user.name} />
                             <p>{user.name}</p>
+                            {/* <TrashIcon className="h-4 w-4 cursor-pointer " /> */}
                           </div>
                         </div>
                         <p className="text-sm text-gray-500">
@@ -98,6 +121,14 @@ export default async function UsersTable({
                       <td className="whitespace-nowrap bg-white px-4 py-5 text-sm">
                          {user.balance} 
                       </td>
+                      <td className="whitespace-nowrap bg-white px-4 py-5 text-sm ">
+                        <button type='button' onClick={() => handleDelete(user.id)} 
+                        className='group inline-flex items-center justify-center rounded-md  bg-gray-100 p-2 transition-all duration-200 hover:bg-primary/10' >
+                          <TrashIcon className="h-6 w-6 text-gray-500 transition-colors duration-200 group-hover:text-primary" />
+                        </button>
+                         
+                      </td>
+
                      
                     </tr>
                   ))}
