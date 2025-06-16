@@ -6,7 +6,7 @@ export default function HistoryTransactionsTable({ transactions, isLoading }) {
 
 	if (isLoading) {
 		return (
-			< TransactionsTableSkeleton />
+			< TransactionsTableSkeleton name="transactions" />
 		)
 	}
 

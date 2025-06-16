@@ -17,7 +17,7 @@ export default  function UsersTable({
 
       if (isLoading) {
         return (
-          < TransactionsTableSkeleton />
+          < TransactionsTableSkeleton name="users" />
         )
       }
 
@@ -66,6 +66,9 @@ export default  function UsersTable({
                         <p className="text-sm text-gray-500">
                           {user.email}
                         </p>
+                        <p className="text-sm text-gray-800">
+                          {user.role}
+                        </p>
                         </Link>
                     </div>
                     <div className="flex w-full items-center justify-between border-b py-5">
@@ -88,6 +91,9 @@ export default  function UsersTable({
                     </th>
                     <th scope="col" className="px-3 py-5 font-medium">
                       Email
+                    </th>
+                    <th scope="col" className="px-3 py-5 font-medium">
+                      Роль
                     </th>
                     <th scope="col" className="px-3 py-5 font-medium">
                       Баланс
@@ -118,9 +124,14 @@ export default  function UsersTable({
                       <td className="whitespace-nowrap bg-white px-4 py-5 text-sm">
                         {user.email}
                       </td>
+
+                        <td className="whitespace-nowrap bg-white px-4 py-5 text-sm">
+                        {user.role}
+                      </td>
                       <td className="whitespace-nowrap bg-white px-4 py-5 text-sm">
                          {user.balance} 
                       </td>
+                    
                       <td className="whitespace-nowrap bg-white px-4 py-5 text-sm ">
                         <button type='button' onClick={() => handleDelete(user.id)} 
                         className='group inline-flex items-center justify-center rounded-md  bg-gray-100 p-2 transition-all duration-200 hover:bg-primary/10' >

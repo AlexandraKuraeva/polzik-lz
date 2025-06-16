@@ -166,6 +166,7 @@ export async function fetchPointsActions(){
 		const { data, error } = await supabase
 			.from('point_actions')
 			.select('*')
+			.order('created_at', { ascending: true })
 		
 		return data
 	}catch (error) {

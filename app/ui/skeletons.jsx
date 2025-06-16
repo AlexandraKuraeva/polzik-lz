@@ -44,7 +44,11 @@ export function InvoicesTableSkeleton() {
   );
 }
 
-export function TransactionsTableSkeleton() {
+export function TransactionsTableSkeleton({ name }) {
+
+  const transaction = ['Операция', 'Описание', 'Сумма', 'Дата'];
+  const users = ['Имя', 'Email', 'Роль',  'Баланс', ];
+
   return (
     <div className="mt-6 flex w-full flex-col md:col-span-4">
       <div className="inline-block min-w-full align-middle">
@@ -61,18 +65,16 @@ export function TransactionsTableSkeleton() {
           <table className="hidden min-w-full text-gray-900 md:table">
             <thead className="rounded-lg text-left text-sm font-normal">
               <tr>
-							<th scope="col" className="px-4 py-5 font-medium sm:pl-6">
-                      Операция
-                    </th>
-                    <th scope="col" className="px-3 py-5 font-medium">
-                      Описание
-                    </th>
-                    <th scope="col" className="px-3 py-5 font-medium">
-                      Сумма
-                    </th>
-                    <th scope="col" className="px-3 py-5 font-medium">
-                      Дата
-                    </th>
+                {name === 'transactions' ? transaction.map((item, index) => (
+                  <th key={index} scope="col" className="px-4 py-5 font-medium sm:pl-6">
+                    {item}
+                  </th>
+                )) : users.map((item, index) => (
+                  <th key={index} scope="col" className="px-4 py-5 font-medium sm:pl-6">
+                    {item}
+                  </th>
+                ))}
+						
               </tr>
             </thead>
             <tbody className="bg-white">
