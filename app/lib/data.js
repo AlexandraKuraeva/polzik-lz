@@ -44,6 +44,24 @@ export async function fetchUserById(id) {
 		throw new Error('Failed to fetch invoice.')
 	}
 }
+export async function fetchUserByEmail(email) {
+	try {
+		const { data, error } = await supabase
+			.from('users')
+			.select('*')
+			.eq('email', email)
+			.single()
+
+		if (error) throw error
+
+		const user = data
+
+		return user
+	} catch (error) {
+		console.error('Database Error:', error)
+		throw new Error('Failed to fetch invoice.')
+	}
+}
 
 export async function getUser(email) {
 	

@@ -1,6 +1,6 @@
 'use server';
 
-import { supabase, updateTransactions, fetchBalance, updateBalance, createUser } from './data'
+import { supabase, updateTransactions, fetchBalance, updateBalance, createUser, fetchUserByEmail } from './data'
 import { revalidatePath } from 'next/cache';
 import { validateForm, validateFormCreateUser } from './utils';
 import { signIn } from '@/auth';
@@ -86,7 +86,14 @@ export async function actionCreateUser(prevState,formData) {
 	}
 	
 	try{
-			console.log('formData', [...formData.entries()])
+			// console.log('formData', [...formData.entries()])
+
+		const existUser = await fetchUserByEmail(email)
+
+		if(existUser){
+			
+			return { message: 'Пользователь уже существует', errors: { email: 'Email уже занят' }, data: { name, email, password, role } }
+		}
 		const newUser = await createUser(name, email, password, role)
 	
 
