@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useState  } from 'react'
+import { useActionState, useState } from 'react'
 import { actionCreateUser } from '@/app/lib/actions'
 import { Button } from '@/app/ui/button'
 //import Modal from '@/app/ui/modal/modal'
@@ -19,7 +19,7 @@ export default function CreateUserForm({ refetchUsers }) {
 			const result = await actionCreateUser(prevState, formData)
 
 			if (result) {
-				console.log('result', result);
+				console.log('result', result)
 				// setModalText('Пользователь успешно создан!')
 				// setShowModal(true)
 				refetchUsers()
@@ -32,111 +32,94 @@ export default function CreateUserForm({ refetchUsers }) {
 
 	return (
 		<>
-			<form action={formAction} className='space-y-4 max-w-md'>
-				<div className='relative mt-2 rounded-md'>
-					<div className='relative'>
-						<input
-							type='text'
-							name='name'
-							placeholder='Имя'
-							defaultValue={state?.data?.name}
-							required
-							className='border p-2 w-full'
-						/>
-					</div>
-				</div>
-				<div id='customer-error' aria-live='polite' aria-atomic='true'>
+			<form
+				action={formAction}
+				className='max-w-sm space-y-3 bg-white p-4 rounded-lg border border-gray-200 text-sm'
+			>
+				{/* Имя */}
+				<div>
+					<input
+						type='text'
+						name='name'
+						placeholder='Имя'
+						defaultValue={state?.data?.name}
+						required
+						className='w-full border rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-indigo-500'
+					/>
 					{state?.errors?.name && (
-						<p className='mt-2 text-sm text-red-500'>{state.errors.name}</p>
+						<p className='mt-1 text-xs text-red-500'>{state.errors.name}</p>
 					)}
 				</div>
 
-				<div className='relative mt-2 rounded-md'>
-					<div className='relative'>
-						<input
-							type='email'
-							name='email'
-							placeholder='Email'
-							defaultValue={state?.data?.email}
-							required
-							className='border p-2 w-full'
-						/>
-					</div>
-				</div>
-				<div id='customer-error' aria-live='polite' aria-atomic='true'>
+				{/* Email */}
+				<div>
+					<input
+						type='email'
+						name='email'
+						placeholder='Email'
+						defaultValue={state?.data?.email}
+						required
+						className='w-full border rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-indigo-500'
+					/>
 					{state?.errors?.email && (
-						<p className='mt-2 text-sm text-red-500'>{state.errors.email}</p>
+						<p className='mt-1 text-xs text-red-500'>{state.errors.email}</p>
 					)}
 				</div>
 
-				<div className='relative mt-2 rounded-md'>
-					<div className='relative'>
-						<input
-							type='password'
-							name='password'
-							placeholder='Пароль'
-							defaultValue={state?.data?.password}
-							required
-							className='border p-2 w-full'
-						/>
-					</div>
-				</div>
-				<div id='customer-error' aria-live='polite' aria-atomic='true'>
+				{/* Пароль */}
+				<div>
+					<input
+						type='password'
+						name='password'
+						placeholder='Пароль'
+						defaultValue={state?.data?.password}
+						required
+						className='w-full border rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-indigo-500'
+					/>
 					{state?.errors?.password && (
-						<p className='mt-2 text-sm text-red-500'>{state.errors.password}</p>
+						<p className='mt-1 text-xs text-red-500'>{state.errors.password}</p>
 					)}
 				</div>
+
 				{/* Роль */}
-				<fieldset>
-					<div className='rounded-md border border-gray-200 bg-white px-[14px] py-3'>
-						<div className='flex gap-4'>
-							<div className='flex items-center'>
-								<input
-									id='user'
-									name='role'
-									type='radio'
-									value='user'
-									defaultChecked={state?.data?.role === 'user'}
-									className='h-4 w-4 cursor-pointer border-gray-300 bg-gray-100 text-gray-600 focus:ring-2'
-								/>
-								<label
-									htmlFor='user'
-									className='ml-2 flex cursor-pointer items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-600'
-								>
-									Пользователь
-									{/* <ArrowUpCircleIcon className='h-6 w-6 text-green-500' /> */}
-								</label>
-							</div>
-							<div className='flex items-center '>
-								<input
-									id='admin'
-									name='role'
-									type='radio'
-									value='admin'
-									defaultChecked={state?.data?.role === 'admin'}
-									className='h-4 w-4 cursor-pointer border-gray-300 bg-gray-100 text-gray-600 focus:ring-2'
-								/>
-								<label
-									htmlFor='admin'
-									className='ml-2 flex cursor-pointer items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-600'
-								>
-									Админ
-									{/* <ArrowDownCircleIcon className='h-6 w-6 text-red-500 ' /> */}
-								</label>
-							</div>
-						</div>
+				<fieldset className='space-y-1'>
+					<div className='flex gap-2'>
+						<label className='flex items-center gap-1'>
+							<input
+								type='radio'
+								name='role'
+								value='user'
+								defaultChecked={state?.data?.role === 'user'}
+								className='h-3 w-3 text-indigo-600'
+							/>
+							<span>Пользователь</span>
+						</label>
+						<label className='flex items-center gap-1'>
+							<input
+								type='radio'
+								name='role'
+								value='admin'
+								defaultChecked={state?.data?.role === 'admin'}
+								className='h-3 w-3 text-indigo-600'
+							/>
+							<span>Админ</span>
+						</label>
 					</div>
-					<div id='customer-error' aria-live='polite' aria-atomic='true'>
-						{state?.errors?.role && (
-							<p className='mt-2 text-sm text-red-500'>{state.errors.role}</p>
-						)}
-					</div>
+					{state?.errors?.role && (
+						<p className='text-xs text-red-500'>{state.errors.role}</p>
+					)}
 				</fieldset>
-				<Button type='submit' disabled={isProcessing}>
-					{isProcessing ? 'Создание...' : 'Создать пользователя'}
+
+				{/* Кнопка */}
+				<Button
+					type='submit'
+					disabled={isProcessing}
+					className='w-full bg-primary text-white py-2 px-3 rounded-md text-sm'
+				>
+					{isProcessing ? 'Добавляем...' : 'Добавить'}
 				</Button>
 			</form>
-{/* 
+			{/* 
 			{showModal && (
 				<Modal onClose={() => setShowModal(false)}>
 					<p>{modalText}</p>
