@@ -1,14 +1,7 @@
 import React from 'react';
-import clsx from 'clsx';
-import { inter } from '@/app/ui/fonts';
-import { fetchPointsActions } from '@/app/lib/data';
 
-export default async function  PointsTable () {
 
-	const actions = await fetchPointsActions();
-
-	
-
+export default async function  PointsTable ( { actions } ) {
 
 	return (
     <div className="max-w-2xm mx-auto mt-8 p-2 pt-0 bg-white shadow rounded-lg">
@@ -25,7 +18,7 @@ export default async function  PointsTable () {
             <tr key={index} className="border-b last:border-b-0">
               <td className="py-2">{item.description}</td>
               <td className={`py-2 text-right font-semibold ${item.type === 'earn' ? 'text-green-600' : 'text-red-500'}`}>
-                {item.type === 'earn' ? `+${item.sum}` : item.sum}
+                {item.type === 'earn' ? `+${item.sum}` : `-${item.sum}`}
               </td>
             </tr>
           ))}
