@@ -50,7 +50,7 @@ export async function fetchUserByEmail(email) {
 			.from('users')
 			.select('*')
 			.eq('email', email)
-			.single()
+			.maybeSingle()
 
 		if (error) throw error
 
@@ -181,6 +181,7 @@ export async function fetchPointsActions(){
 
 
 export async function createUser( name, email, password, role ) {
+	console.log('createUser');
 
 	try{
 		const { data: response, error} = await supabase 
@@ -195,6 +196,7 @@ export async function createUser( name, email, password, role ) {
 		
 		})
 		.select()
+		console.log(response);
 
 		return response
 
