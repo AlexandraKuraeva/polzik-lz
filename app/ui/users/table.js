@@ -8,12 +8,17 @@ import { UserAvatar } from '@/app/ui/user/user-avatar.jsx';
 // import Search from '@/app/ui/search';
 import { Button } from '@/app/ui/button'
 import { TrashIcon } from '@heroicons/react/24/outline';
-import { deleteUser } from '@/app/lib/data'
+import { actionDeleteUser } from '@/app/lib/actions'
 import { TransactionsTableSkeleton } from '@/app/ui/skeletons'
+import { useSession } from 'next-auth/react'
+import { useState } from 'react'
 
 
 export default  function UsersTable({
 	users, isLoading, refetchUsers}) {
+  const { data: session } = useSession()
+  const [deletingId, setDeletingId] = useState(null)
+  const [deleteError, setDeleteError] = useState('')
 
       if (isLoading) {
         return (
@@ -24,17 +29,31 @@ export default  function UsersTable({
     const url = '/dashboard/users';
 
    async function handleDelete(id) {
-      
-     const delUser = await deleteUser(id);
+     setDeleteError('')
+     setDeletingId(id)
 
-     if(delUser){
-      
+     try {
+       const result = await actionDeleteUser(id)
 
-      refetchUsers();
+       if (!result.success) {
+         setDeleteError(result.message)
+         return
+       }
+
+       await refetchUsers()
+     } catch (error) {
+       setDeleteError('Не удалось удалить пользователя')
+     } finally {
+       setDeletingId(null)
      }
     }
   return (
     <div className="w-full">
+      {deleteError && (
+        <p className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-600" role="alert">
+          {deleteError}
+        </p>
+      )}
       
       {/* <Search placeholder="Search users..." /> */}
       <div className="mt-6 flow-root">
@@ -133,10 +152,17 @@ export default  function UsersTable({
                       </td>
                     
                       <td className="whitespace-nowrap bg-white px-4 py-5 text-sm ">
+                        {String(session?.user?.id) === String(user.id) ? (
+                          <span className="text-xs text-gray-400" title="Нельзя удалить текущего пользователя">
+                            Текущий пользователь
+                          </span>
+                        ) : (
                         <button type='button' onClick={() => handleDelete(user.id)} 
+                        disabled={deletingId === user.id}
                         className='group inline-flex items-center justify-center rounded-md  bg-gray-100 p-2 transition-all duration-200 hover:bg-primary/10' >
                           <TrashIcon className="h-6 w-6 text-gray-500 transition-colors duration-200 group-hover:text-primary" />
                         </button>
+                        )}
                          
                       </td>
 

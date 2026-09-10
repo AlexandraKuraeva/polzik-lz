@@ -52,6 +52,7 @@ export async function fetchUserByEmail(email) {
 			.eq('email', email)
 			.single()
 
+		if (error?.code === 'PGRST116') return null
 		if (error) throw error
 
 		const user = data
@@ -181,45 +182,40 @@ export async function fetchPointsActions(){
 
 
 export async function createUser( name, email, password, role ) {
-
-	try{
-		const { data: response, error} = await supabase 
+	const { data: response, error } = await supabase
 		.from('users')
 		.insert({
-			
-			name: name,
-			email: email,
-			password: password,
-			role: role,
+			name,
+			email,
+			password,
+			role,
 			balance: 0,
-		
 		})
 		.select()
 
-		return response
+	if (error) throw error
 
-		
-	}catch(error){
-		return { message: 'Ошибка в базе: не удалось создать пользователя', errors: {} }
-	}
+	return response
 
 }
 
 
 export async function deleteUser( id ) {
+	const { error: transactionsError } = await supabase
+		.from('transactions')
+		.delete()
+		.eq('user_id', id)
 
-	try{
-		const { data: response, error} = await supabase 
+	if (transactionsError) throw transactionsError
+
+	const { data: response, error } = await supabase
 		.from('users')
 		.delete()
 		.eq('id', id)
 		.select()
 
-		return response
+	if (error) throw error
 
-		
-	}catch(error){
-		return { message: 'Ошибка в базе: не удалось удалить пользователя', errors: {} }
-	}
+	return response
 }
 

@@ -1,9 +1,9 @@
 'use server';
 
-import { supabase, updateTransactions, fetchBalance, updateBalance, createUser, fetchUserByEmail } from './data'
+import { supabase, updateTransactions, fetchBalance, updateBalance, createUser, fetchUserByEmail, deleteUser } from './data'
 import { revalidatePath } from 'next/cache';
 import { validateForm, validateFormCreateUser } from './utils';
-import { signIn } from '@/auth';
+import { auth, signIn } from '@/auth';
 import { AuthError } from 'next-auth';
 
 
@@ -104,5 +104,31 @@ export async function actionCreateUser(prevState,formData) {
 	catch(error){
 		console.log(error);
 		return { message: 'Ошибка в actions: не удалось создать пользователя', errors: {} }
+	}
+}
+
+export async function actionDeleteUser(id) {
+	const session = await auth()
+
+	if (session?.user?.role !== 'admin') {
+		return { success: false, message: 'Недостаточно прав для удаления пользователя' }
+	}
+
+	if (!id) {
+		return { success: false, message: 'Не указан пользователь' }
+	}
+
+	if (String(session.user.id) === String(id)) {
+		return { success: false, message: 'Нельзя удалить пользователя, под которым выполнен вход' }
+	}
+
+	try {
+		await deleteUser(id)
+		revalidatePath('/dashboard/users')
+
+		return { success: true }
+	} catch (error) {
+		console.error('Не удалось удалить пользователя:', error)
+		return { success: false, message: 'Не удалось удалить пользователя' }
 	}
 }

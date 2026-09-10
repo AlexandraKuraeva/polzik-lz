@@ -33,7 +33,7 @@ export default function Page() {
 
 
 	async function refetchTransactions() {
-		await Promise.all[(transactionsMutate(), userMutate())]
+		await Promise.all([transactionsMutate(), userMutate()])
 	}
 
 	return (
