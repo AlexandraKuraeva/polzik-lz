@@ -50,7 +50,7 @@ export async function fetchUserByEmail(email) {
 			.from('users')
 			.select('*')
 			.eq('email', email)
-			.single()
+			.maybeSingle()
 
 		if (error?.code === 'PGRST116') return null
 		if (error) throw error
