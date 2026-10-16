@@ -1,5 +1,5 @@
 import Credentials from "next-auth/providers/credentials";
-import { getUser } from './app/lib/data'
+import { fetchUserByEmail } from './app/lib/data'
 
 export const authConfig = {
 	providers: [
@@ -9,21 +9,32 @@ export const authConfig = {
 				password: {},
 			},
 
+			// Ошибки из authorize next-auth v5 превращает в CallbackRouteError (error=Configuration),
+			// поэтому при неверных данных возвращаем null — это даёт обычный CredentialsSignin
 			async authorize(credentials) {
-				if (!credentials?.email || !credentials?.password) {
-					throw new Error('Email и пароль обязательны')
-				}
+				const email = String(credentials?.email ?? '').trim()
+				const password = String(credentials?.password ?? '')
 
-				const user = await getUser(credentials.email)
+				if (!email || !password) return null
+
+				let user
+				try {
+					user = await fetchUserByEmail(email)
+				} catch (error) {
+					console.error('[auth] не удалось получить пользователя из БД:', error)
+					return null
+				}
 
 				if (!user) {
-					throw new Error('Пользователь не найден')
+					console.warn('[auth] пользователь не найден:', email)
+					return null
 				}
 
-				if (credentials.password !== user.password) {
-					throw new Error('Неверный пароль')
+				if (password !== user.password) {
+					console.warn('[auth] неверный пароль для:', email)
+					return null
 				}
-				// console.log(user.id, user.name)
+
 				return {
 					id: user.id,
 					email: user.email,

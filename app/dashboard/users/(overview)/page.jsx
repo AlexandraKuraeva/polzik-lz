@@ -1,6 +1,5 @@
 'use client'
 
-import { fetchUsers } from '@/app/lib/data';
 import UsersTable from '@/app/ui/users/table';
 import CreateUserForm from '@/app/ui/user/create-user-form';
 import useSWR from 'swr'

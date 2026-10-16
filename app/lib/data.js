@@ -1,19 +1,25 @@
+import 'server-only'
 import { createClient } from '@supabase/supabase-js'
 
-
+// Только сервер: service role обходит RLS, поэтому ключ не должен попасть в браузер.
+// Локально переменные берутся из .env.local, на Vercel — из Environment Variables.
 export const supabase = createClient(
-	process.env.NEXT_PUBLIC_SUPABASE_URL ?? '',
-	process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
+	process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL ?? '',
+	// SUPABASE_SECRET_KEY — новый ключ sb_secret_… (облако), SUPABASE_SERVICE_ROLE_KEY — legacy (локальный CLI)
+	process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY ?? '',
+	{ auth: { persistSession: false } }
 )
 
+// Поля, которые можно отдавать наружу. password сюда не входит —
+// его читает только fetchUserByEmail для проверки при входе.
+const PUBLIC_USER_FIELDS = 'id, name, email, role, balance, created_at'
 
 
 export async function fetchUsers() {
-	console.log('fetchUsers');
 	try {
 		const { data, error } = await supabase
 			.from('users')
-			.select('*')
+			.select(PUBLIC_USER_FIELDS)
 			.order('created_at', { ascending: false })
 
 		if (error) throw error
@@ -30,9 +36,9 @@ export async function fetchUserById(id) {
 	try {
 		const { data, error } = await supabase
 			.from('users')
-			.select('*')
+			.select(PUBLIC_USER_FIELDS)
 			.eq('id', id)
-			.single()
+			.maybeSingle()
 
 		if (error) throw error
 
@@ -60,7 +66,7 @@ export async function fetchUserByEmail(email) {
 		return user
 	} catch (error) {
 		console.error('Database Error:', error)
-		throw new Error('Failed to fetch invoice.')
+		throw new Error(`Failed to fetch user by email: ${error?.code ?? ''} ${error?.message ?? error}`)
 	}
 }
 
@@ -69,7 +75,7 @@ export async function getUser(email) {
 	try {
 		const { data, error } = await supabase
 			.from('users')
-			.select('*')
+			.select(PUBLIC_USER_FIELDS)
 			.eq('email', email)
 			.single()
 

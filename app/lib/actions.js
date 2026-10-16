@@ -1,6 +1,6 @@
 'use server';
 
-import { supabase, updateTransactions, fetchBalance, updateBalance, createUser, fetchUserByEmail, deleteUser } from './data'
+import { updateTransactions, fetchBalance, updateBalance, createUser, fetchUserByEmail, deleteUser } from './data'
 import { revalidatePath } from 'next/cache';
 import { validateForm, validateFormCreateUser } from './utils';
 import { auth, signIn } from '@/auth';
@@ -9,7 +9,12 @@ import { AuthError } from 'next-auth';
 
 export async function actionTransaction(prevState, formData) {
 
-	
+	// Server action — публичный эндпоинт: права проверяем здесь, а не только в middleware
+	const session = await auth()
+	if (session?.user?.role !== 'admin') {
+		return { message: 'Недостаточно прав для операции', errors: {} }
+	}
+
 	const userId = formData.get('userId')
 	const amount = Number(formData.get('amount'), 10)
 	const type = formData.get('type')
@@ -73,11 +78,16 @@ export async function authenticate( prevState, formData){
 
 export async function actionCreateUser(prevState,formData) {
 
-	console.log('actionCreateUser');
-	const email = formData.get('email');
-	const password = formData.get('password');
-	const name = formData.get('name');
-	const role = formData.get('role');
+	const session = await auth()
+	if (session?.user?.role !== 'admin') {
+		return { message: 'Недостаточно прав для создания пользователя', errors: {} }
+	}
+
+	// ?? '' — чтобы валидация не падала на null, если поле не пришло
+	const email = formData.get('email') ?? '';
+	const password = formData.get('password') ?? '';
+	const name = formData.get('name') ?? '';
+	const role = formData.get('role') ?? '';
 
 	const errors = validateFormCreateUser(name, email, password, role)
 	

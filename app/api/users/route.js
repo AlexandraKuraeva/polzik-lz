@@ -1,12 +1,12 @@
 import { fetchUsers } from '@/app/lib/data'
+import { requireAdmin } from '@/app/lib/api-auth'
 
-export async function GET(req, { params }) {
+export async function GET() {
+	const { response } = await requireAdmin()
+	if (response) return response
+
 	const users = await fetchUsers()
-	console.log('users', users)
 
-	if (!users || users.length === 0) {
-		return Response.json({ error: 'Users not found' }, { status: 404 })
-	}
-
-	return Response.json(users)
+	// Пустой список — не ошибка: таблица на странице просто покажет, что сотрудников нет
+	return Response.json(users ?? [])
 }
