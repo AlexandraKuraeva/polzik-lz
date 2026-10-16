@@ -3,6 +3,9 @@ import clsx from 'clsx'
 import { lusitana } from '@/app/ui/fonts'
 import { fetchPointsActions } from '@/app/lib/data';
 
+// Данные из БД читаются на каждый запрос, а не один раз при сборке
+export const dynamic = 'force-dynamic'
+
 export default async function Info() {
 
 	const actions = await fetchPointsActions();
