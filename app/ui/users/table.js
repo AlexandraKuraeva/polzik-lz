@@ -12,6 +12,7 @@ import { actionDeleteUser } from '@/app/lib/actions'
 import { TransactionsTableSkeleton } from '@/app/ui/skeletons'
 import { useSession } from 'next-auth/react'
 import { useState } from 'react'
+import Modal from '@/app/ui/modal/modal'
 
 
 export default  function UsersTable({
@@ -19,6 +20,8 @@ export default  function UsersTable({
   const { data: session } = useSession()
   const [deletingId, setDeletingId] = useState(null)
   const [deleteError, setDeleteError] = useState('')
+  // Сотрудник, удаление которого нужно подтвердить
+  const [userToDelete, setUserToDelete] = useState(null)
 
       if (isLoading) {
         return (
@@ -40,6 +43,7 @@ export default  function UsersTable({
          return
        }
 
+       setUserToDelete(null)
        await refetchUsers()
      } catch (error) {
        setDeleteError('Не удалось удалить пользователя')
@@ -47,14 +51,58 @@ export default  function UsersTable({
        setDeletingId(null)
      }
     }
+
+   function openDeleteConfirm(user) {
+     setDeleteError('')
+     setUserToDelete(user)
+   }
+
+   function closeDeleteConfirm() {
+     // Не закрываем окно, пока идёт удаление
+     if (deletingId) return
+     setDeleteError('')
+     setUserToDelete(null)
+   }
   return (
     <div className="w-full">
-      {deleteError && (
-        <p className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-600" role="alert">
-          {deleteError}
-        </p>
+      {userToDelete && (
+        <Modal onClose={closeDeleteConfirm} title="Удаление сотрудника">
+          <h2 className="pr-6 text-lg font-medium text-gray-900">
+            Удалить сотрудника?
+          </h2>
+          <p className="mt-3 text-sm text-gray-600">
+            <span className="font-medium text-gray-900">{userToDelete.name}</span>
+            {' '}({userToDelete.email}) будет удалён вместе со всей историей операций.
+            Это действие нельзя отменить.
+          </p>
+
+          {deleteError && (
+            <p className="mt-4 rounded-md bg-red-50 p-3 text-sm text-red-600" role="alert">
+              {deleteError}
+            </p>
+          )}
+
+          <div className="mt-6 flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={closeDeleteConfirm}
+              disabled={Boolean(deletingId)}
+              className="flex h-10 items-center rounded-lg bg-gray-100 px-4 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Отмена
+            </button>
+            <button
+              type="button"
+              onClick={() => handleDelete(userToDelete.id)}
+              disabled={Boolean(deletingId)}
+              className="flex h-10 items-center rounded-lg bg-red-600 px-4 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {deletingId ? 'Удаление…' : 'Удалить'}
+            </button>
+          </div>
+        </Modal>
       )}
-      
+
       {/* <Search placeholder="Search users..." /> */}
       <div className="mt-6 flow-root">
         <div className="overflow-x-auto">
@@ -157,8 +205,10 @@ export default  function UsersTable({
                             Текущий пользователь
                           </span>
                         ) : (
-                        <button type='button' onClick={() => handleDelete(user.id)} 
+                        <button type='button' onClick={() => openDeleteConfirm(user)}
                         disabled={deletingId === user.id}
+                        aria-label={`Удалить ${user.name}`}
+                        title="Удалить"
                         className='group inline-flex items-center justify-center rounded-md  bg-gray-100 p-2 transition-all duration-200 hover:bg-primary/10' >
                           <TrashIcon className="h-6 w-6 text-gray-500 transition-colors duration-200 group-hover:text-primary" />
                         </button>
