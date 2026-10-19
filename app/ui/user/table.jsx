@@ -13,9 +13,9 @@ export default function HistoryTransactionsTable({ transactions, isLoading }) {
 	return (
 		<>
 			{transactions.length > 0 ? (
-				<div className='flex w-full flex-col md:col-span-4'>
+				<div className='flex w-full min-w-0 flex-col md:col-span-4'>
 					<div className='inline-block min-w-full align-middle'>
-						<div className='rounded-lg bg-gray-50 p-2 md:pt-0'>
+						<div className='overflow-x-auto rounded-lg bg-gray-50 p-2 md:pt-0'>
 							<div className='md:hidden'>
 								{transactions?.map(transaction => (
 									<div
@@ -70,7 +70,7 @@ export default function HistoryTransactionsTable({ transactions, isLoading }) {
 											<td className='whitespace-nowrap px-3 py-3'>
 												<TypeOperation type={transaction.type} />
 											</td>
-											<td className='whitespace-nowrap px-3 py-3'>
+											<td className='min-w-[10rem] break-words px-3 py-3'>
 												{transaction.description}
 											</td>
 											<td className='whitespace-nowrap px-3 py-3'>
