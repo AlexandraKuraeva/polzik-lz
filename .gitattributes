@@ -1,0 +1,8 @@
+# Скрипты и конфиги для Linux-контейнеров — всегда с LF
+*.sh text eol=lf
+*.sql text eol=lf
+*.conf text eol=lf
+*.mjs text eol=lf
+Dockerfile text eol=lf
+docker-compose.yml text eol=lf
+.env.example text eol=lf

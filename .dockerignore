@@ -1,0 +1,13 @@
+node_modules
+.next
+.git
+.vercel
+.env*
+!.env.example
+*.sql
+supabase
+scripts
+docker-compose.yml
+Dockerfile
+.dockerignore
+*.md
