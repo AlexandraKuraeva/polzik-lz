@@ -1,5 +1,6 @@
 import 'server-only'
 import { createClient } from '@supabase/supabase-js'
+import { PostgrestClient } from '@supabase/postgrest-js'
 
 // Только сервер: service role обходит RLS, поэтому ключ не должен попасть в браузер.
 // Локально переменные берутся из .env.local, на Vercel — из Environment Variables.
@@ -11,14 +12,19 @@ function db() {
 	if (client) return client
 
 	const url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL
+	// В Docker (docker-compose.yml) — адрес PostgREST напрямую, без шлюза Supabase (/rest/v1)
+	const restUrl = process.env.SUPABASE_REST_URL
 	// SUPABASE_SECRET_KEY — новый ключ sb_secret_… (облако), SUPABASE_SERVICE_ROLE_KEY — legacy (локальный CLI)
 	const key = process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY
 
-	if (!url || !key) {
+	if (!(url || restUrl) || !key) {
 		throw new Error('Не заданы переменные окружения SUPABASE_URL и/или SUPABASE_SECRET_KEY')
 	}
 
-	client = createClient(url, key, { auth: { persistSession: false } })
+	// Из Supabase нужен только .from() — его даёт и клиент PostgREST
+	client = restUrl
+		? new PostgrestClient(restUrl, { headers: { apikey: key, Authorization: `Bearer ${key}` } })
+		: createClient(url, key, { auth: { persistSession: false } })
 	return client
 }
 
