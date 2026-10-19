@@ -15,8 +15,16 @@
   Переменные применяются только к новым деплоям — после изменения нужен новый деплой.
 - Локально ключ называется `SUPABASE_SERVICE_ROLE_KEY` (legacy-формат от CLI); `data.js` берёт
   `SUPABASE_SECRET_KEY ?? SUPABASE_SERVICE_ROLE_KEY`.
-- Изменения схемы БД применять в обе базы (SQL Editor локальной Studio и облачного Dashboard).
-  Папки `supabase/` с миграциями в проекте нет.
+- **Сервер (Docker):** `docker-compose.yml` + `Dockerfile`, инструкция в `DEPLOY.md`. Свой минимальный
+  self-hosted Supabase: db (`supabase/postgres`), rest (PostgREST), gateway (nginx, `/rest/v1` → PostgREST),
+  studio + meta. Ключ приложения — JWT `SERVICE_ROLE_KEY`, `SUPABASE_URL=http://gateway:8000`.
+  `output: 'standalone'` включается только при `BUILD_STANDALONE=1` (в Dockerfile), Vercel и dev не затронуты.
+- Изменения схемы БД применять во все базы (локальная Studio, облачный Dashboard) и в
+  `supabase/db/polziks-schema.sql` (структура для пустой базы в Docker). Миграций нет.
+- Загрузка дампа в Docker-базу — `scripts/import-dump.sh` (от `supabase_admin`: дамп меняет
+  default privileges этой роли). После загрузки применяется `supabase/db/polziks-access.sql` (права + RLS).
+- Проверять Docker-стек локально отдельным проектом и портами, чтобы не задеть dev и локальный Supabase:
+  `docker compose -p polziks-test --env-file <tmp.env> up -d --build`, затем `down -v`.
 
 ## Локальный Supabase
 
