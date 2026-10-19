@@ -15,16 +15,23 @@
   Переменные применяются только к новым деплоям — после изменения нужен новый деплой.
 - Локально ключ называется `SUPABASE_SERVICE_ROLE_KEY` (legacy-формат от CLI); `data.js` берёт
   `SUPABASE_SECRET_KEY ?? SUPABASE_SERVICE_ROLE_KEY`.
-- **Сервер (Docker):** `docker-compose.yml` + `Dockerfile`, инструкция в `DEPLOY.md`. Свой минимальный
-  self-hosted Supabase: db (`supabase/postgres`), rest (PostgREST), gateway (nginx, `/rest/v1` → PostgREST),
-  studio + meta. Ключ приложения — JWT `SERVICE_ROLE_KEY`, `SUPABASE_URL=http://gateway:8000`.
-  `output: 'standalone'` включается только при `BUILD_STANDALONE=1` (в Dockerfile), Vercel и dev не затронуты.
+- **Сервер (Docker):** `docker-compose.yml` + `Dockerfile`, инструкция в `DEPLOY.md`. Устроен как в
+  Jurassic (`Desktop/jurassic_2.0`): один compose, профиль из `.env` — `local` (порты) или `vps`
+  (traefik, внешняя сеть `web`, entrypoint `websecure`, certresolver `myresolver`): только сервис
+  polziki.lz.media. Портов на хост на VPS нет, Studio на сервере нет (решение пользователя) —
+  база только внутри compose. Обновление на VPS — `scripts/vps-update.sh`. Никакого nginx руками.
+  Свой минимальный Supabase: db (`supabase/postgres`), rest (PostgREST); meta + studio — только local. Шлюза нет:
+  сервис ходит в PostgREST напрямую — `SUPABASE_REST_URL=http://rest:3000`, в `data.js` тогда
+  `PostgrestClient` вместо `createClient` (из Supabase используется только `.from()`).
+  Ключ — JWT `SERVICE_ROLE_KEY`. `output: 'standalone'` только при `BUILD_STANDALONE=1` (в Dockerfile).
 - Изменения схемы БД применять во все базы (локальная Studio, облачный Dashboard) и в
-  `supabase/db/polziks-schema.sql` (структура для пустой базы в Docker). Миграций нет.
+  `supabase/db/polziks-schema.sql` — идемпотентно (`IF NOT EXISTS`): его прогоняет каждый `vps-update.sh`.
 - Загрузка дампа в Docker-базу — `scripts/import-dump.sh` (от `supabase_admin`: дамп меняет
   default privileges этой роли). После загрузки применяется `supabase/db/polziks-access.sql` (права + RLS).
 - Проверять Docker-стек локально отдельным проектом и портами, чтобы не задеть dev и локальный Supabase:
-  `docker compose -p polziks-test --env-file <tmp.env> up -d --build`, затем `down -v`.
+  `docker compose -p polziks-test --env-file <tmp.env> up -d --build`, затем `down -v`. `.env` в корне
+  проекта не создавать: его читает и `npm run dev`. Профиль `vps` локально — с временной сетью
+  `docker network create web` (потом удалить).
 
 ## Локальный Supabase
 
