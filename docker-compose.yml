@@ -1,169 +1,216 @@
-# Пользики: сервис + self-hosted Supabase (только то, что нужно приложению).
+# Пользики: сервис + self-hosted Supabase (только то, что нужно приложению). Один compose на два места,
+# что поднимать — решает `.env` рядом с файлом (COMPOSE_PROFILES); команды без --env-file и без -f.
 #
-#   Запуск:      docker compose up -d --build
-#   Остановка:   docker compose down
-#   Логи:        docker compose logs -f app
+# 1. Локалка — профиль `local`: сервис на http://localhost:3000, Studio на http://localhost:54323
+#   docker run --rm -v "$PWD":/app -w /app node:22-alpine node scripts/generate-env.mjs .env.example > .env
+#   docker compose up -d --build
+#   sh scripts/import-dump.sh backup.sql   # данные из дампа (по желанию)
+#   docker compose down -v                 # стенд с нуля (база стирается)
 #
-# Подробно — в DEPLOY.md. Переменные — в .env (шаблон: .env.example).
+# 2. VPS — профиль `vps`: только сервис (https://polziki.lz.media) за traefik: внешняя сеть `web`,
+# entrypoint websecure, certresolver myresolver. Портов на хост не публикуется, админки (Studio) на
+# сервере нет — база доступна только изнутри compose. Имя экземпляра — COMPOSE_PROJECT_NAME из .env: от него имена
+# контейнеров и роутеров traefik.
+#   docker run --rm -v "$PWD":/app -w /app node:22-alpine node scripts/generate-env.mjs .env.vps.example > .env
+#   ./scripts/vps-update.sh     # git pull → up -d --build → схема и права в базу → проверка домена
+# Порядок первого запуска — DEPLOY.md.
 #
-# Образы Supabase и их настройки взяты из официального supabase/docker
-# (версии от 2026-10-16). Не подняты: auth, storage, realtime, functions,
-# analytics, pooler — приложение их не использует.
+# Supabase: образы из официального supabase/docker (версии от 2026-10-16), но только db, rest (PostgREST),
+# meta + studio (только локалка). Сервис ходит в PostgREST напрямую (SUPABASE_REST_URL), без шлюза Kong/Envoy.
+# Не подняты auth, storage, realtime, functions, analytics, pooler — приложение их не использует.
 
 name: polziks
 
-services:
+# Ротация логов контейнеров: без лимитов json-file забивает диск
+x-logging: &default-logging
+   driver: json-file
+   options:
+      max-size: "10m"
+      max-file: "3"
 
-  # --- Сервис ---
+# Служебные контейнеры (база, API, админка) traefik не публикует — даже если на сервере у него
+# exposedByDefault=true (значение по умолчанию). Наружу через traefik идёт только app-vps.
+x-no-traefik: &no-traefik
+   - "traefik.enable=false"
 
-  app:
-    build: .
-    image: polziks-app
-    restart: unless-stopped
-    depends_on:
-      gateway:
-        condition: service_healthy
-    environment:
-      # Supabase во внутренней сети докера
-      SUPABASE_URL: http://gateway:8000
-      SUPABASE_SECRET_KEY: ${SERVICE_ROLE_KEY:?не задан SERVICE_ROLE_KEY}
-      AUTH_SECRET: ${AUTH_SECRET:?не задан AUTH_SECRET}
-      # next-auth v5 за обратным прокси (nginx/traefik на сервере)
+# Общее для app (локалка) и app-vps
+x-app: &app
+   build: .
+   image: ${COMPOSE_PROJECT_NAME:-polziks}-app
+   logging: *default-logging
+   restart: unless-stopped
+   depends_on:
+      rest:
+         condition: service_healthy
+   environment:
+      # PostgREST во внутренней сети compose
+      SUPABASE_REST_URL: http://rest:3000
+      SUPABASE_SECRET_KEY: ${SERVICE_ROLE_KEY:-}
+      AUTH_SECRET: ${AUTH_SECRET:-}
+      # next-auth v5 за traefik: адрес сайта берёт из X-Forwarded-Host
       AUTH_TRUST_HOST: "true"
-    ports:
-      - ${APP_PORT:-3000}:3000
-    healthcheck:
+   healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3000/login"]
       interval: 10s
       timeout: 5s
-      retries: 5
-      start_period: 15s
+      retries: 12
+      start_period: 20s
 
-  # --- Supabase ---
-
-  db:
-    image: supabase/postgres:17.6.1.136
-    restart: unless-stopped
-    volumes:
-      # Скрипты инициализации выполняются только при первом запуске (пустой том db-data)
-      # Должен быть суперпользователь, чтобы менять служебные роли
-      - ./supabase/db/roles.sql:/docker-entrypoint-initdb.d/init-scripts/99-roles.sql:ro
-      - ./supabase/db/jwt.sql:/docker-entrypoint-initdb.d/init-scripts/99-jwt.sql:ro
-      # Таблицы приложения и права — от имени postgres, после миграций Supabase
-      - ./supabase/db/polziks-schema.sql:/docker-entrypoint-initdb.d/migrations/99-polziks-1-schema.sql:ro
-      - ./supabase/db/polziks-access.sql:/docker-entrypoint-initdb.d/migrations/99-polziks-2-access.sql:ro
-      - db-data:/var/lib/postgresql/data
-      - db-config:/etc/postgresql-custom
-    healthcheck:
-      test: ["CMD", "pg_isready", "-U", "postgres", "-h", "localhost"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-      # Первый запуск (инициализация базы) идёт дольше
-      start_period: 60s
-    environment:
-      POSTGRES_HOST: /var/run/postgresql
-      PGPORT: 5432
-      POSTGRES_PORT: 5432
-      PGPASSWORD: ${POSTGRES_PASSWORD:?не задан POSTGRES_PASSWORD}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      PGDATABASE: postgres
-      POSTGRES_DB: postgres
-      JWT_EXP: ${JWT_EXPIRY:-3600}
-    command:
-      [
-        "postgres",
-        "-c",
-        "config_file=/etc/postgresql/postgresql.conf",
-        "-c",
-        "log_min_messages=fatal"
-      ]
-
-  # REST API к базе (то, что supabase-js вызывает через .from(...))
-  rest:
-    image: postgrest/postgrest:v14.18
-    restart: unless-stopped
-    depends_on:
-      db:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "postgrest", "--ready"]
-      interval: 5s
-      timeout: 5s
-      retries: 3
-    environment:
-      PGRST_DB_URI: postgres://authenticator:${POSTGRES_PASSWORD}@db:5432/postgres
-      PGRST_DB_SCHEMAS: public
-      PGRST_DB_MAX_ROWS: 1000
-      PGRST_DB_EXTRA_SEARCH_PATH: public,extensions
-      PGRST_DB_ANON_ROLE: anon
-      PGRST_ADMIN_SERVER_PORT: 3001
-      PGRST_ADMIN_SERVER_HOST: localhost
-      PGRST_JWT_SECRET: ${JWT_SECRET:?не задан JWT_SECRET}
-      PGRST_DB_USE_LEGACY_GUCS: "false"
-      PGRST_APP_SETTINGS_JWT_EXP: ${JWT_EXPIRY:-3600}
-
-  # Отдаёт PostgREST по пути /rest/v1, как облачный Supabase
-  gateway:
-    image: nginx:1.27-alpine
-    restart: unless-stopped
-    depends_on:
-      rest:
-        condition: service_healthy
-    volumes:
-      - ./supabase/gateway/nginx.conf:/etc/nginx/conf.d/default.conf:ro
-    healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8000/health"]
-      interval: 5s
-      timeout: 5s
-      retries: 3
-
-  # Веб-интерфейс к базе (таблицы, SQL Editor). Без пароля, поэтому порт открыт
-  # только на 127.0.0.1 сервера — заходить через SSH-туннель (см. DEPLOY.md).
-  studio:
-    image: supabase/studio:2026.10.12-sha-3699278
-    restart: unless-stopped
-    depends_on:
+# Studio — веб-админка базы, только на локалке. Своего входа нет, поэтому слушает 127.0.0.1
+x-studio: &studio
+   image: supabase/studio:2026.10.12-sha-3699278
+   logging: *default-logging
+   labels: *no-traefik
+   restart: unless-stopped
+   depends_on:
       meta:
-        condition: service_started
-    ports:
-      - 127.0.0.1:${STUDIO_PORT:-54323}:3000
-    environment:
+         condition: service_started
+   environment: &studio-env
       HOSTNAME: "0.0.0.0"
       STUDIO_PG_META_URL: http://meta:8080
       POSTGRES_HOST: db
       POSTGRES_PORT: 5432
       POSTGRES_DB: postgres
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
       POSTGRES_USER_READ_WRITE: postgres
-      PG_META_CRYPTO_KEY: ${PG_META_CRYPTO_KEY:?не задан PG_META_CRYPTO_KEY}
+      PG_META_CRYPTO_KEY: ${PG_META_CRYPTO_KEY:-}
       PGRST_DB_SCHEMAS: public
       DEFAULT_ORGANIZATION_NAME: LZ Media
       DEFAULT_PROJECT_NAME: Пользики
-      SUPABASE_URL: http://gateway:8000
-      SUPABASE_PUBLIC_URL: http://localhost:${STUDIO_PORT:-54323}
-      SUPABASE_ANON_KEY: ${ANON_KEY:?не задан ANON_KEY}
-      SUPABASE_SERVICE_KEY: ${SERVICE_ROLE_KEY}
-      AUTH_JWT_SECRET: ${JWT_SECRET}
+      SUPABASE_URL: http://rest:3000
+      SUPABASE_ANON_KEY: ${ANON_KEY:-}
+      SUPABASE_SERVICE_KEY: ${SERVICE_ROLE_KEY:-}
+      AUTH_JWT_SECRET: ${JWT_SECRET:-}
       ENABLED_FEATURES_LOGS_ALL: "false"
 
-  # API для Studio: схема, таблицы, SQL
-  meta:
-    image: supabase/postgres-meta:v0.100.0
-    restart: unless-stopped
-    depends_on:
-      db:
-        condition: service_healthy
-    environment:
-      PG_META_PORT: 8080
-      PG_META_DB_HOST: db
-      PG_META_DB_PORT: 5432
-      PG_META_DB_NAME: postgres
-      PG_META_DB_USER: postgres
-      PG_META_DB_PASSWORD: ${POSTGRES_PASSWORD}
-      CRYPTO_KEY: ${PG_META_CRYPTO_KEY}
+services:
+   # ---------- Supabase: на обоих местах ----------
+
+   db:
+      image: supabase/postgres:17.6.1.136
+      logging: *default-logging
+      labels: *no-traefik
+      restart: unless-stopped
+      volumes:
+         # Скрипты инициализации выполняются только при первом запуске (пустой том db-data).
+         # Должен быть суперпользователь, чтобы менять служебные роли
+         - ./supabase/db/roles.sql:/docker-entrypoint-initdb.d/init-scripts/99-roles.sql:ro
+         - ./supabase/db/jwt.sql:/docker-entrypoint-initdb.d/init-scripts/99-jwt.sql:ro
+         # Таблицы приложения и права — от имени postgres, после миграций Supabase.
+         # Идемпотентны: на VPS vps-update.sh прогоняет их при каждом обновлении
+         - ./supabase/db/polziks-schema.sql:/docker-entrypoint-initdb.d/migrations/99-polziks-1-schema.sql:ro
+         - ./supabase/db/polziks-access.sql:/docker-entrypoint-initdb.d/migrations/99-polziks-2-access.sql:ro
+         - db-data:/var/lib/postgresql/data
+         - db-config:/etc/postgresql-custom
+      environment:
+         POSTGRES_HOST: /var/run/postgresql
+         PGPORT: 5432
+         POSTGRES_PORT: 5432
+         PGPASSWORD: ${POSTGRES_PASSWORD:-}
+         POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
+         PGDATABASE: postgres
+         POSTGRES_DB: postgres
+         JWT_EXP: ${JWT_EXPIRY:-3600}
+      command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf", "-c", "log_min_messages=fatal"]
+      healthcheck:
+         test: ["CMD", "pg_isready", "-U", "postgres", "-h", "localhost"]
+         interval: 5s
+         timeout: 5s
+         retries: 10
+         # Первый запуск (инициализация базы) идёт дольше
+         start_period: 60s
+
+   # REST API к базе — то, что приложение вызывает через .from(...)
+   rest:
+      image: postgrest/postgrest:v14.18
+      logging: *default-logging
+      labels: *no-traefik
+      restart: unless-stopped
+      depends_on:
+         db:
+            condition: service_healthy
+      environment:
+         PGRST_DB_URI: postgres://authenticator:${POSTGRES_PASSWORD:-}@db:5432/postgres
+         PGRST_DB_SCHEMAS: public
+         PGRST_DB_MAX_ROWS: 1000
+         PGRST_DB_EXTRA_SEARCH_PATH: public,extensions
+         PGRST_DB_ANON_ROLE: anon
+         PGRST_ADMIN_SERVER_PORT: 3001
+         PGRST_ADMIN_SERVER_HOST: localhost
+         PGRST_JWT_SECRET: ${JWT_SECRET:-}
+         PGRST_DB_USE_LEGACY_GUCS: "false"
+         PGRST_APP_SETTINGS_JWT_EXP: ${JWT_EXPIRY:-3600}
+      healthcheck:
+         test: ["CMD", "postgrest", "--ready"]
+         interval: 5s
+         timeout: 5s
+         retries: 3
+
+   # API для Studio: схема, таблицы, SQL
+   meta:
+      image: supabase/postgres-meta:v0.100.0
+      logging: *default-logging
+      labels: *no-traefik
+      restart: unless-stopped
+      profiles: [local]
+      depends_on:
+         db:
+            condition: service_healthy
+      environment:
+         PG_META_PORT: 8080
+         PG_META_DB_HOST: db
+         PG_META_DB_PORT: 5432
+         PG_META_DB_NAME: postgres
+         PG_META_DB_USER: postgres
+         PG_META_DB_PASSWORD: ${POSTGRES_PASSWORD:-}
+         CRYPTO_KEY: ${PG_META_CRYPTO_KEY:-}
+
+   # ---------- Локалка ----------
+
+   app:
+      <<: *app
+      profiles: [local]
+      ports:
+         # Только с этой машины, не из локальной сети (офисный Wi-Fi и т.п.)
+         - "127.0.0.1:${APP_PORT:-3000}:3000"
+
+   studio:
+      <<: *studio
+      profiles: [local]
+      environment:
+         <<: *studio-env
+         SUPABASE_PUBLIC_URL: http://localhost:${STUDIO_PORT:-54323}
+      ports:
+         - "127.0.0.1:${STUDIO_PORT:-54323}:3000"
+
+   # ---------- VPS ----------
+
+   app-vps:
+      <<: *app
+      profiles: [vps]
+      container_name: ${COMPOSE_PROJECT_NAME:-polziks}-app
+      mem_limit: 512m
+      networks:
+         - default # db, rest
+         - web # traefik
+      labels:
+         - "traefik.enable=true"
+         - "traefik.docker.network=web"
+         - "traefik.http.routers.${COMPOSE_PROJECT_NAME:-polziks}-app.rule=Host(`${APP_DOMAIN:-}`)"
+         - "traefik.http.routers.${COMPOSE_PROJECT_NAME:-polziks}-app.entrypoints=websecure"
+         - "traefik.http.routers.${COMPOSE_PROJECT_NAME:-polziks}-app.tls.certresolver=myresolver"
+         # Пароль на сайт — только при непустом SITE_BASIC_AUTH_USERS (как в Jurassic). Пустая переменная
+         # снимает префикс `traefik.http.`: метки остаются чужими для traefik, и у роутера нет middleware
+         - "${SITE_BASIC_AUTH_USERS:+traefik.http.}routers.${COMPOSE_PROJECT_NAME:-polziks}-app.middlewares=${COMPOSE_PROJECT_NAME:-polziks}-auth"
+         - "${SITE_BASIC_AUTH_USERS:+traefik.http.}middlewares.${COMPOSE_PROJECT_NAME:-polziks}-auth.basicauth.users=${SITE_BASIC_AUTH_USERS:-}"
+         - "traefik.http.services.${COMPOSE_PROJECT_NAME:-polziks}-app.loadbalancer.server.port=3000"
 
 volumes:
-  # Данные базы. Удаление тома (docker compose down -v) стирает базу!
-  db-data:
-  db-config:
+   # Данные базы. `docker compose down -v` их стирает!
+   db-data:
+   db-config:
+
+# Сеть traefik на VPS. Локальному профилю не нужна и не проверяется
+networks:
+   web:
+      external: true

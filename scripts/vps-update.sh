@@ -24,16 +24,6 @@ for key in COMPOSE_PROJECT_NAME APP_DOMAIN POSTGRES_PASSWORD JWT_SECRET SERVICE_
    fi
 done
 
-# Studio без своего входа — без пароля traefik не поднимаем
-if env_value COMPOSE_PROFILES | grep -q studio; then
-   for key in STUDIO_DOMAIN STUDIO_BASIC_AUTH_USERS; do
-      if [ -z "$(env_value "$key")" ]; then
-         echo "Профиль studio включён, а в .env пустой $key — заполнить по .env.vps.example." >&2
-         exit 1
-      fi
-   done
-fi
-
 PROJECT=$(env_value COMPOSE_PROJECT_NAME)
 APP_DOMAIN=$(env_value APP_DOMAIN)
 echo "== экземпляр $PROJECT (https://$APP_DOMAIN)"
@@ -53,4 +43,4 @@ echo "== контейнеры"
 docker compose ps
 
 echo "== проверка домена (сразу после старта traefik может ещё получать сертификат — повтори через минуту)"
-curl -s -o /dev/null -w "https://$APP_DOMAIN/login → %{http_code}\n" "https://$APP_DOMAIN/login" || true
+curl -s -o /dev/null -w "https://$APP_DOMAIN/login → %{http_code} (ждём 200)\n" "https://$APP_DOMAIN/login" || true

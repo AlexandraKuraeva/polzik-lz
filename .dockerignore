@@ -3,7 +3,6 @@ node_modules
 .git
 .vercel
 .env*
-!.env.example
 *.sql
 supabase
 scripts

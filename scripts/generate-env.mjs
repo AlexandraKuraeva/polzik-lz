@@ -1,7 +1,8 @@
-// Генерирует .env для docker compose: берёт .env.example и заполняет пустые секреты.
+// Генерирует .env для docker compose: берёт образец и заполняет пустые секреты.
+// Образец — аргументом: .env.example (локалка, по умолчанию) или .env.vps.example (сервер).
 // Запуск (нужен только Docker):
-//   docker run --rm -v "$PWD":/app -w /app node:22-alpine node scripts/generate-env.mjs > .env
-// или, если есть Node: node scripts/generate-env.mjs > .env
+//   docker run --rm -v "$PWD":/app -w /app node:22-alpine node scripts/generate-env.mjs .env.vps.example > .env
+// или, если есть Node: node scripts/generate-env.mjs .env.vps.example > .env
 
 import { createHmac, randomBytes } from 'node:crypto'
 import { readFileSync } from 'node:fs'
@@ -30,7 +31,8 @@ const secrets = {
 	AUTH_SECRET: randomBytes(32).toString('base64'),
 }
 
-const template = readFileSync(new URL('../.env.example', import.meta.url), 'utf8')
+const templateName = process.argv[2] ?? '.env.example'
+const template = readFileSync(new URL(`../${templateName}`, import.meta.url), 'utf8')
 const result = template.replace(/^([A-Z_]+)=$/gm, (line, name) =>
 	name in secrets ? `${name}=${secrets[name]}` : line,
 )

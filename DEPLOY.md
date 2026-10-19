@@ -1,108 +1,93 @@
-# Развёртывание «Пользиков» на сервере (Docker)
+# «Пользики» на сервере (Docker + traefik)
 
-Всё поднимается одним `docker-compose.yml`: сервис (Next.js) и self-hosted Supabase
-в минимальном составе (Postgres, PostgREST, Studio).
+Сервис и база поднимаются из корневого `docker-compose.yml`, устроенного как в Jurassic. Один файл на
+локалку и VPS, а что поднимать, решает `.env` рядом с ним (`COMPOSE_PROFILES`). Команды одни и те же,
+без `--env-file` и `-f`.
 
-| Контейнер | Что это | Порт на хосте |
-|---|---|---|
-| `app` | сервис «Пользики» | `APP_PORT` (3000) |
-| `db` | Postgres (образ `supabase/postgres`) | не публикуется |
-| `rest` | PostgREST — REST API к базе, через него ходит приложение | не публикуется |
-| `gateway` | nginx: отдаёт PostgREST по пути `/rest/v1`, как облачный Supabase | не публикуется |
-| `studio`, `meta` | Supabase Studio — веб-интерфейс к базе | `127.0.0.1:STUDIO_PORT` (54323) |
+| Профиль | Где | Что поднимается | Доступ |
+|---|---|---|---|
+| `local` | машина разработчика | `app`, `studio` + база | http://localhost:3000, Studio http://localhost:54323 — только с этой машины |
+| `vps` | сервер | `app-vps` + база | https://polziki.lz.media через traefik (сеть `web`) |
 
-Требуется Docker Engine с Compose v2 (`docker compose version`). Ресурсы: ~1,5 ГБ RAM.
+База: `db` (Postgres, образ `supabase/postgres`) и `rest` (PostgREST, через него ходит сервис).
 
-## Первый запуск
+**Что открыто наружу на сервере — только сервис по домену через traefik.** Ни один контейнер не
+публикует порты на хост. База и PostgREST доступны только изнутри compose, их нет даже в сети `web`.
+Админки базы (Studio) на сервере нет. Домен и сертификат выдаёт traefik по меткам контейнера
+(entrypoint `websecure`, certresolver `myresolver`), nginx и ручная настройка прокси не нужны.
 
-```sh
-git clone <репозиторий> polziks && cd polziks
+Имя экземпляра — `COMPOSE_PROJECT_NAME` из `.env` (по умолчанию `polziks`). От него имя контейнера
+сервиса `polziks-app`, томов и роутера traefik.
 
-# 1. Секреты: создать .env из .env.example с новыми случайными ключами
-docker run --rm -v "$PWD":/app -w /app node:22-alpine node scripts/generate-env.mjs > .env
-# при необходимости поправить порты в .env
+## Первый запуск на VPS
 
-# 2. Собрать и запустить
-docker compose up -d --build
-docker compose ps          # все контейнеры должны быть healthy / running
+1. DNS: A-запись `polziki.lz.media` → IP VPS.
+2. Клон: `git clone ssh://git@gitlab.lz.media:2222/Kuraeva/polzik.git /home/lzmedia/projects/polziks`
+3. `.env` из образца, секреты генерируются сами, домен уже прописан:
 
-# 3. Загрузить данные из дампа (файл передаётся отдельно, в репозитории его нет)
-sh scripts/import-dump.sh /path/to/public_backup.sql
-```
+   ```sh
+   cd /home/lzmedia/projects/polziks
+   docker run --rm -v "$PWD":/app -w /app node:22-alpine node scripts/generate-env.mjs .env.vps.example > .env
+   ```
 
-При первом запуске база создаётся пустой, со структурой таблиц
-(`supabase/db/polziks-schema.sql`). Шаг 3 заменяет схему `public` содержимым дампа.
+4. `./scripts/vps-update.sh` — поднимет базу и сервис, создаст таблицы, проверит домен.
+5. Данные из дампа (файл передаётся отдельно, в репозитории его нет):
 
-Дамп загружать только через `scripts/import-dump.sh` (или `docker compose cp` + `psql -f`).
-Не передавать его через пайп (`cat dump.sql | psql`, `Get-Content | ...`): кодировка ломается
-и кириллица превращается в `?`.
+   ```sh
+   sh scripts/import-dump.sh /path/to/public_backup.sql
+   ```
 
-## Доступ снаружи
+   Дамп загружать только этим скриптом. Через пайп (`cat dump.sql | psql`) кодировка ломается
+   и кириллица превращается в `?`.
+6. Проверить: `docker compose ps` — все контейнеры `healthy`; https://polziki.lz.media — вход, список
+   сотрудников, начисление. Что-то не так — `docker compose logs --tail 50 app-vps`.
 
-- **Сервис** слушает `APP_PORT` по HTTP. Наружу его нужно открывать через обратный прокси
-  с HTTPS (nginx, Traefik, Caddy). Пример для nginx:
-
-  ```nginx
-  location / {
-      proxy_pass http://127.0.0.1:3000;
-      proxy_set_header Host $host;
-      proxy_set_header X-Forwarded-Proto $scheme;
-      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-  }
-  ```
-
-  Если прокси на том же сервере, порт можно закрыть от внешнего мира:
-  `APP_PORT=127.0.0.1:3000` в `.env`.
-
-- **Studio** без пароля, поэтому слушает только `127.0.0.1`. Заходить через SSH-туннель:
-
-  ```sh
-  ssh -L 54323:127.0.0.1:54323 user@server
-  # затем открыть http://localhost:54323
-  ```
-
-- **База и REST API** наружу не публикуются: к ним ходят только контейнеры
-  во внутренней сети докера.
-
-## Обновление сервиса
+## Обновление
 
 ```sh
-git pull
-docker compose up -d --build app
+./scripts/vps-update.sh
 ```
 
-Данные лежат в томе `polziks_db-data` и при пересборке не теряются.
+Скрипт работает с `.env` своей папки. По шагам: `git pull` → `docker compose up -d --build --wait` →
+`supabase/db/polziks-schema.sql` и `polziks-access.sql` в базу (идемпотентны, повторный прогон
+безвреден) → `docker compose ps` → код ответа `https://polziki.lz.media/login`. Без `.env` с
+`COMPOSE_PROFILES=vps` или с пустыми доменом и секретами останавливается с подсказкой.
 
-## Резервная копия базы
+Новая колонка или таблица — дописать в `polziks-schema.sql` идемпотентно
+(`CREATE TABLE IF NOT EXISTS`, `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`), и следующий
+`vps-update.sh` применит её.
+
+## Работа с базой на сервере
+
+Админки нет, к базе подключаются из консоли сервера:
+
+```sh
+docker compose exec db psql -U postgres
+```
+
+## Резервная копия и восстановление
 
 ```sh
 docker compose exec -T db pg_dump -U postgres -d postgres -n public > backup_$(date +%F).sql
+sh scripts/import-dump.sh backup_YYYY-MM-DD.sql
 ```
-
-Восстановление: `sh scripts/import-dump.sh backup_YYYY-MM-DD.sql`.
 
 ## Важно
 
-- **`.env` не терять и не менять секреты после первого запуска.** `POSTGRES_PASSWORD`
-  и `JWT_SECRET` записаны в базу и в выданные ключи. Если их поменять, сервис перестанет
-  подключаться к базе.
-- `docker compose down -v` **удаляет базу** (том с данными). Для остановки — `docker compose down`.
-- Права в базе: приложение работает с ключом `SERVICE_ROLE_KEY`. Для `ANON_KEY` таблицы
-  закрыты (RLS включён, права отозваны), см. `supabase/db/polziks-access.sql`.
-- Пароли сотрудников в таблице `users` пока хранятся открытым текстом. Дамп не
-  пересылать открыто и не класть в репозиторий.
+- **`.env` не терять и секреты после первого запуска не менять.** `POSTGRES_PASSWORD` и `JWT_SECRET`
+  записаны в базу и в выданные ключи.
+- `docker compose down` — остановить, данные остаются. `docker compose down -v` **стирает базу**.
+- Пароль на весь сайт — по желанию, `SITE_BASIC_AUTH_USERS` (пусто — без пароля), как на staging Jurassic.
+- Права в базе: сервис работает с `SERVICE_ROLE_KEY`, для анонимного доступа таблицы закрыты (RLS, права
+  отозваны) — `supabase/db/polziks-access.sql`.
+- Пароли сотрудников в таблице `users` пока хранятся открытым текстом. Дамп не пересылать открыто.
 
-## Как это связано с облачным Supabase
+## Связь с облачным Supabase
 
-Код один и тот же. `app/lib/data.js` берёт адрес и ключ базы из переменных окружения:
+Код один и тот же, `app/lib/data.js` берёт адрес и ключ базы из переменных окружения:
 
 | Где запущено | База | Переменные |
 |---|---|---|
-| Сервер (Docker) | Supabase из этого compose | задаёт `docker-compose.yml` из `.env` |
-| Vercel | облачный Supabase | Environment Variables в Vercel |
-| Локально, `npm run dev` | облачный или локальный Supabase | `.env.local` |
-
-Конфигурация Supabase основана на официальном
-[supabase/docker](https://github.com/supabase/supabase/tree/master/docker) (образы от 2026-10-16).
-Не подняты сервисы, которые приложение не использует: Auth, Storage, Realtime,
-Edge Functions, аналитика, пулер.
+| VPS / локальный Docker | Supabase из этого compose, напрямую в PostgREST | `SUPABASE_REST_URL`, задаёт compose |
+| Vercel | облачный Supabase | `SUPABASE_URL` и ключ в Environment Variables |
+| `npm run dev` | облачный или локальный Supabase | `.env.local` |
