@@ -62,6 +62,12 @@
 ## Данные
 
 - `users`: id (uuid), name, email, password, role (`admin` | `user`), balance, created_at.
+  - email уникален: индекс `users_email_lower_key` по `lower(email)`; в коде всё через `normalizeEmail`
+    (utils.js, trim + нижний регистр). `23505` при вставке = «email занят» (`isEmailTakenError`).
+  - password — bcrypt (`bcryptjs`, cost 10), хеширует только `createUser`. Переходный вход в
+    `auth.config.js`: открытый пароль сравнивается напрямую и при успехе перехешируется (`rehashPassword`).
+    Схема хеширует не-bcrypt пароли через `extensions.crypt`. Облако: сначала деплой кода, потом схема
+    в SQL Editor (DEPLOY.md). Сброс пароля — только SQL, смены в интерфейсе нет.
 - `transactions`: user_id, amount (всегда положительный), type (`credit` | `debit`), description, date.
 - `point_actions`: description, sum, type (`earn` | `spend`) — справочник «как заработать / на что потратить».
 - Баланс хранится в `users.balance` и обновляется отдельно от вставки транзакции (не атомарно).
@@ -69,7 +75,7 @@
 ## Известные проблемы (ещё не исправлены)
 
 - RLS выключен на всех таблицах в обеих базах.
-- Пароли хранятся открытым текстом, сравнение `!==` в `auth.config.js`.
+- Переходный вход по открытому паролю в `auth.config.js` — убрать, когда все базы мигрированы.
 - Начисление: read-modify-write баланса без транзакции → гонки и расхождение с историей.
 - Ошибки supabase-js (`{ error }`) во многих функциях data.js не проверяются.
 - `AUTH_SECRET` на Vercel помечен «Needs Attention».
