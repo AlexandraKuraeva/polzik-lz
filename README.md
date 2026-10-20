@@ -1,36 +1,177 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Пользики
 
-## Getting Started
+Внутренний сервис LZ.Media для учёта «пользиков», баллов сотрудников. Админ начисляет и списывает
+баллы, сотрудник видит свой баланс, историю операций и справочник «как заработать / на что потратить».
 
-First, run the development server:
+- Прод (Vercel): https://polzik-lzmedia.vercel.app
+- Сервер (Docker + traefik): https://polziki.lz.media
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Что умеет
+
+| Роль | Страница | Что там |
+|---|---|---|
+| все | `/dashboard` | баланс и история своих операций |
+| все | `/dashboard/info` | справочник: за что начисляют и на что можно потратить |
+| `admin` | `/dashboard/users` | список сотрудников, создание и удаление |
+| `admin` | `/dashboard/users/[id]` | баланс и история сотрудника, начисление и списание |
+
+Вход по email и паролю. Регистрации нет: сотрудников заводит админ.
+
+## Стек
+
+- Next.js 15 (App Router), JavaScript без TypeScript, React 19
+- next-auth v5 beta: Credentials, сессия в JWT
+- Supabase только как Postgres: запросы через `supabase-js` или напрямую в PostgREST
+- Tailwind CSS 3, SWR, zod
+- Node 22 (в Docker), Node 18 работает, но `supabase-js` предупреждает
+
+## Быстрый старт
+
+Есть два способа поднять проект локально.
+
+### Вариант 1. `npm run dev` с внешним Supabase
+
+Подходит для разработки: горячая перезагрузка, база локального Supabase CLI или облачная.
+
+1. `npm install`
+2. Создать `.env.local` (в git не попадает):
+
+   ```sh
+   # Адрес проекта Supabase: облако или локальный CLI (http://127.0.0.1:54321)
+   SUPABASE_URL=
+   # Серверный ключ: sb_secret_… (облако) или service_role (локальный CLI)
+   SUPABASE_SECRET_KEY=
+   # Подпись сессий next-auth, например: openssl rand -base64 32
+   AUTH_SECRET=
+   ```
+
+   Вместо `SUPABASE_SECRET_KEY` можно указать `SUPABASE_SERVICE_ROLE_KEY`, так называется legacy-ключ
+   от Supabase CLI.
+3. Если база пустая, создать таблицы из `supabase/db/polziks-schema.sql` (SQL Editor в Studio).
+4. `npm run dev` и открыть http://localhost:3000.
+
+### Вариант 2. Docker: сервис и база одним compose
+
+Нужен только Docker. Поднимает сервис, Postgres, PostgREST и Studio на портах `127.0.0.1`.
+
+```sh
+# .env с новыми секретами (не путать с .env.local)
+docker run --rm -v "$PWD":/app -w /app node:22-alpine node scripts/generate-env.mjs .env.example > .env
+docker compose up -d --build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- Сервис: http://localhost:3000
+- Studio (админка базы): http://localhost:54323
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+Таблицы создаются сами при первом запуске. Данные загружаются из дампа: положить `.sql` в `scripts/`
+и выполнить `sh scripts/import-dump.sh`. Пересоздать стенд с нуля: `docker compose down -v`
+(**база стирается**).
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Учтите: `.env` в корне читает и `npm run dev`. Если работаете в обоих вариантах, после Docker-стенда
+удалите `.env` или запускайте compose с `-p <имя> --env-file <файл вне проекта>`.
 
-## Learn More
+### Первый админ
 
-To learn more about Next.js, take a look at the following resources:
+Сервис создаёт админа сам при старте (`instrumentation.js` → `app/lib/ensure-admin.js`), если заданы
+`ADMIN_EMAIL` и `ADMIN_PASSWORD` и пользователя с таким email ещё нет. Если он уже есть, ничего не
+меняется: ни пароль, ни роль.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- Docker, профиль `local`: `ADMIN_EMAIL=admin@lz.media` уже стоит в `.env.example`, пароль генерирует
+  `generate-env.mjs`, смотреть в `.env`.
+- VPS: в `.env.vps.example` `ADMIN_EMAIL` пуст, потому что сотрудники обычно приходят из дампа.
+  Заполнить, если база стартует пустой.
+- `npm run dev`: добавить `ADMIN_EMAIL`, `ADMIN_PASSWORD` и по желанию `ADMIN_NAME` в `.env.local`.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Удалённый в интерфейсе админ из `.env` появится снова при следующем старте сервиса. Чтобы этого не
+было, очистите `ADMIN_EMAIL`. Остальных сотрудников заводит админ в интерфейсе.
 
-## Deploy on Vercel
+## Переменные окружения
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+| Переменная | Где | Зачем |
+|---|---|---|
+| `SUPABASE_URL` | `.env.local`, Vercel | адрес Supabase (запасной вариант: `NEXT_PUBLIC_SUPABASE_URL`) |
+| `SUPABASE_REST_URL` | Docker (задаёт compose) | адрес PostgREST напрямую, без шлюза Supabase |
+| `SUPABASE_SECRET_KEY` | везде | серверный ключ базы, обходит RLS (запасной вариант: `SUPABASE_SERVICE_ROLE_KEY`) |
+| `AUTH_SECRET` | везде | подпись сессий next-auth |
+| `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NAME` | по желанию | админ, которого сервис создаёт при старте, если его нет |
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Если задан `SUPABASE_REST_URL`, `app/lib/data.js` создаёт `PostgrestClient`, иначе клиент `supabase-js`.
+Переменные Docker-стенда (`POSTGRES_PASSWORD`, `JWT_SECRET`, ключи, порты) описаны в `.env.example`
+и `.env.vps.example`.
+
+## Команды
+
+| Команда | Что делает |
+|---|---|
+| `npm run dev` | dev-сервер с Turbopack |
+| `npm run build` | продакшен-сборка |
+| `npm run start` | запуск собранного приложения |
+| `npm run lint` | ESLint |
+
+## Структура
+
+```
+app/
+  api/                    route handlers для клиентских страниц (SWR)
+    users/                список сотрудников, сотрудник по id
+    transactions/[id]/    история операций сотрудника
+  dashboard/
+    (over)/               главная: баланс и история текущего пользователя
+    info/                 справочник point_actions
+    users/                раздел админа
+  lib/
+    data.js               весь доступ к БД, только сервер
+    actions.js            server actions: начисление, создание и удаление сотрудника, вход
+    api-auth.js           requireAdmin / requireSelfOrAdmin для /api/*
+    utils.js              валидация форм
+  login/                  страница входа
+  ui/                     компоненты
+auth.js, auth.config.js   next-auth: Credentials-провайдер, роль в JWT и сессии
+middleware.js             защита /dashboard, раздел /dashboard/users только для admin
+instrumentation.js        при старте сервера создаёт админа из ADMIN_* (app/lib/ensure-admin.js)
+supabase/db/              схема таблиц, права и RLS, роли для Docker-базы
+scripts/                  генерация .env, импорт дампа, обновление на VPS
+```
+
+### Правила, которые легко нарушить
+
+- `app/lib/data.js` импортирует `server-only`, его нельзя подключать в `'use client'` файлах.
+  Клиентские страницы получают данные через `/api/...`.
+- `middleware.js` не проверяет `/api/*`. Каждый route handler сам вызывает `requireAdmin()` или
+  `requireSelfOrAdmin(id)`.
+- Server actions тоже публичные эндпоинты: роль проверяется внутри каждого action.
+- Пароль пользователя не отдавать наружу: везде `PUBLIC_USER_FIELDS`, `select('*')` по `users` только
+  в `fetchUserByEmail` для входа.
+
+## Данные
+
+| Таблица | Поля |
+|---|---|
+| `users` | `id`, `name`, `email`, `password`, `role` (`admin` / `user`), `balance`, `created_at` |
+| `transactions` | `user_id`, `amount` (всегда положительный), `type` (`credit` / `debit`), `description`, `date` |
+| `point_actions` | `description`, `sum`, `type` (`earn` / `spend`) |
+
+Баланс хранится в `users.balance` и обновляется отдельно от записи транзакции.
+
+Схема лежит в `supabase/db/polziks-schema.sql` и пишется идемпотентно (`IF NOT EXISTS`). Изменение
+схемы нужно применить во все базы: локальную, облачную и в этот файл (его прогоняет каждое обновление
+на VPS).
+
+## Деплой
+
+- **Vercel.** Production собирается из `main`, остальные ветки идут в Preview. Переменные: `SUPABASE_URL`,
+  `SUPABASE_SECRET_KEY`, `NEXT_PUBLIC_SUPABASE_URL`, `AUTH_SECRET`. После изменения переменных нужен
+  новый деплой.
+- **VPS.** Docker-профиль `vps` за traefik, обновление `./scripts/vps-update.sh`. Первый запуск,
+  резервные копии и работа с базой описаны в [DEPLOY.md](DEPLOY.md).
+
+Репозиторий живёт в двух remote: `github` (к нему подключён Vercel) и `origin` (gitlab.lz.media).
+
+## Известные ограничения
+
+- Пароли хранятся открытым текстом и сравниваются напрямую. Дампы базы не пересылать открыто.
+- Начисление читает баланс, считает новый и записывает без транзакции: возможны гонки и расхождение
+  баланса с историей.
+- Ошибки Supabase проверяются не во всех функциях `data.js`.
+- В облачной базе выключен RLS (в Docker-базе включён, см. `supabase/db/polziks-access.sql`).
+- В интерфейсе остались следы шаблона Next.js learn: шрифты без кириллицы, `lang="en"`, hero-картинки.

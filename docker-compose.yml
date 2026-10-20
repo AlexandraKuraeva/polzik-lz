@@ -47,6 +47,10 @@ x-app: &app
       SUPABASE_REST_URL: http://rest:3000
       SUPABASE_SECRET_KEY: ${SERVICE_ROLE_KEY:-}
       AUTH_SECRET: ${AUTH_SECRET:-}
+      # Админ, которого сервис создаёт при старте, если его нет (instrumentation.js)
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_NAME: ${ADMIN_NAME:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
       # next-auth v5 за traefik: адрес сайта берёт из X-Forwarded-Host
       AUTH_TRUST_HOST: "true"
    healthcheck:

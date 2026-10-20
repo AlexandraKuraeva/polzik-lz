@@ -29,6 +29,8 @@ const secrets = {
 	SERVICE_ROLE_KEY: signKey('service_role', jwtSecret),
 	PG_META_CRYPTO_KEY: hex(32),
 	AUTH_SECRET: randomBytes(32).toString('base64'),
+	// Пароль админа вводят руками — поэтому короткий, 12 символов
+	ADMIN_PASSWORD: randomBytes(9).toString('base64url'),
 }
 
 const templateName = process.argv[2] ?? '.env.example'
