@@ -1,6 +1,7 @@
 import 'server-only'
 import { createClient } from '@supabase/supabase-js'
 import { PostgrestClient } from '@supabase/postgrest-js'
+import { normalizeEmail } from './utils'
 
 // Только сервер: service role обходит RLS, поэтому ключ не должен попасть в браузер.
 // Локально переменные берутся из .env.local, на Vercel — из Environment Variables.
@@ -69,17 +70,23 @@ export async function fetchUserById(id) {
 	}
 }
 export async function fetchUserByEmail(email) {
+	const normalized = normalizeEmail(email)
+
 	try {
+		// limit(2), а не maybeSingle(): дубль должен стать ошибкой, а не «пользователь не найден»
 		const { data, error } = await db()
 			.from('users')
 			.select('*')
-			.eq('email', email)
-			.maybeSingle()
+			.eq('email', normalized)
+			.limit(2)
 
-		if (error?.code === 'PGRST116') return null
 		if (error) throw error
 
-		const user = data
+		if (data.length > 1) {
+			throw new Error(`в users несколько строк с email ${normalized} — дубль нужно разобрать в базе`)
+		}
+
+		const user = data[0] ?? null
 
 		return user
 	} catch (error) {
@@ -94,7 +101,7 @@ export async function getUser(email) {
 		const { data, error } = await db()
 			.from('users')
 			.select(PUBLIC_USER_FIELDS)
-			.eq('email', email)
+			.eq('email', normalizeEmail(email))
 			.single()
 
 		if (error) throw error
@@ -205,12 +212,16 @@ export async function fetchPointsActions(){
 
 
 
+// Занятый email: вставку отклонил уникальный индекс users_email_lower_key (unique_violation).
+// Проверка fetchUserByEmail до вставки не атомарна — гонку закрывает только база
+export const isEmailTakenError = error => error?.code === '23505'
+
 export async function createUser( name, email, password, role ) {
 	const { data: response, error } = await db()
 		.from('users')
 		.insert({
 			name,
-			email,
+			email: normalizeEmail(email),
 			password,
 			role,
 			balance: 0,

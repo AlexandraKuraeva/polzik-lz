@@ -1,3 +1,7 @@
+// Email хранится и ищется в одном виде: без пробелов по краям, в нижнем регистре.
+// Так же его нормализует polziks-schema.sql, а индекс users_email_lower_key не даёт дублей
+export const normalizeEmail = email => String(email ?? '').trim().toLowerCase()
+
 export const formatDateToLocal = ( dateStr, locale = 'ru-RU' ) => {
 
 	const date = new Date(dateStr)

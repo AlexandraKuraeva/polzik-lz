@@ -1,10 +1,11 @@
 import 'server-only'
-import { fetchUserByEmail, createUser } from './data'
+import { fetchUserByEmail, createUser, isEmailTakenError } from './data'
+import { normalizeEmail } from './utils'
 
 // Админ из переменных окружения: создаётся при старте сервера (instrumentation.js),
 // если пользователя с ADMIN_EMAIL ещё нет. Существующий не трогаем — ни пароль, ни роль.
 export async function ensureAdmin() {
-	const email = String(process.env.ADMIN_EMAIL ?? '').trim()
+	const email = normalizeEmail(process.env.ADMIN_EMAIL)
 	const password = String(process.env.ADMIN_PASSWORD ?? '')
 	const name = String(process.env.ADMIN_NAME ?? '').trim() || 'Админ'
 
@@ -24,6 +25,9 @@ export async function ensureAdmin() {
 		await createUser(name, email, password, 'admin')
 		console.log('[admin] создан админ', email)
 	} catch (error) {
+		// Админа с этим email вставили между проверкой и вставкой (второй экземпляр сервиса) — он уже есть
+		if (isEmailTakenError(error)) return
+
 		console.error('[admin] не удалось проверить или создать админа:', error)
 	}
 }

@@ -1,5 +1,6 @@
 import Credentials from "next-auth/providers/credentials";
 import { fetchUserByEmail } from './app/lib/data'
+import { normalizeEmail } from './app/lib/utils'
 
 export const authConfig = {
 	providers: [
@@ -12,7 +13,7 @@ export const authConfig = {
 			// Ошибки из authorize next-auth v5 превращает в CallbackRouteError (error=Configuration),
 			// поэтому при неверных данных возвращаем null — это даёт обычный CredentialsSignin
 			async authorize(credentials) {
-				const email = String(credentials?.email ?? '').trim()
+				const email = normalizeEmail(credentials?.email)
 				const password = String(credentials?.password ?? '')
 
 				if (!email || !password) return null

@@ -7,9 +7,10 @@ import {
 	createUser,
 	fetchUserByEmail,
 	deleteUser,
+	isEmailTakenError,
 } from './data'
 import { revalidatePath } from 'next/cache'
-import { validateForm, validateFormCreateUser } from './utils'
+import { validateForm, validateFormCreateUser, normalizeEmail } from './utils'
 import { auth, signIn } from '@/auth'
 import { AuthError } from 'next-auth'
 
@@ -98,7 +99,7 @@ export async function actionCreateUser(prevState, formData) {
 	}
 
 	// ?? '' — чтобы валидация не падала на null, если поле не пришло
-	const email = formData.get('email') ?? ''
+	const email = normalizeEmail(formData.get('email'))
 	const password = formData.get('password') ?? ''
 	const name = formData.get('name') ?? ''
 	const role = formData.get('role') ?? ''
@@ -113,22 +114,25 @@ export async function actionCreateUser(prevState, formData) {
 		}
 	}
 
+	const emailTaken = {
+		message: 'Пользователь уже существует',
+		errors: { email: 'Email уже занят' },
+		data: { name, email, password, role },
+	}
+
 	try {
 		// console.log('formData', [...formData.entries()])
 
 		const existUser = await fetchUserByEmail(email)
 
-		if (existUser) {
-			return {
-				message: 'Пользователь уже существует',
-				errors: { email: 'Email уже занят' },
-				data: { name, email, password, role },
-			}
-		}
+		if (existUser) return emailTaken
 		const newUser = await createUser(name, email, password, role)
 
 		return newUser
 	} catch (error) {
+		// Тот же email успели вставить между проверкой и вставкой — индекс в базе отклонил дубль
+		if (isEmailTakenError(error)) return emailTaken
+
 		console.log(error)
 		return {
 			message: 'Ошибка в actions: не удалось создать пользователя',
