@@ -35,6 +35,9 @@ yarn-error.log*
 !.env.example
 !.env.vps.example
 
+# дампы базы для scripts/import-dump.sh (в них пароли сотрудников)
+/scripts/*.sql
+
 # vercel
 .vercel
 

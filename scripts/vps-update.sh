@@ -35,7 +35,9 @@ echo "== пересборка и перезапуск"
 docker compose up -d --build --wait
 
 echo "== схема и права в базу (идемпотентно)"
-docker compose exec -T -e PGOPTIONS="-c client_min_messages=warning" db psql -U postgres -d postgres -v ON_ERROR_STOP=1 -q \
+# От supabase_admin: он владелец таблиц (создаёт их при инициализации и при загрузке дампа),
+# от postgres ALTER TABLE ... ENABLE ROW LEVEL SECURITY падает с «must be owner»
+docker compose exec -T -e PGOPTIONS="-c client_min_messages=warning" db psql -U supabase_admin -d postgres -v ON_ERROR_STOP=1 -q \
    -f /docker-entrypoint-initdb.d/migrations/99-polziks-1-schema.sql \
    -f /docker-entrypoint-initdb.d/migrations/99-polziks-2-access.sql
 

@@ -4,7 +4,7 @@
 # 1. Локалка — профиль `local`: сервис на http://localhost:3000, Studio на http://localhost:54323
 #   docker run --rm -v "$PWD":/app -w /app node:22-alpine node scripts/generate-env.mjs .env.example > .env
 #   docker compose up -d --build
-#   sh scripts/import-dump.sh backup.sql   # данные из дампа (по желанию)
+#   sh scripts/import-dump.sh              # данные: дамп .sql положить в scripts/ (по желанию)
 #   docker compose down -v                 # стенд с нуля (база стирается)
 #
 # 2. VPS — профиль `vps`: только сервис (https://polziki.lz.media) за traefik: внешняя сеть `web`,
