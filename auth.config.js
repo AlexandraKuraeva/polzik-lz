@@ -1,5 +1,6 @@
 import Credentials from "next-auth/providers/credentials";
-import { fetchUserByEmail } from './app/lib/data'
+import bcrypt from 'bcryptjs'
+import { fetchUserByEmail, isPasswordHash, rehashPassword } from './app/lib/data'
 import { normalizeEmail } from './app/lib/utils'
 
 export const authConfig = {
@@ -31,9 +32,25 @@ export const authConfig = {
 					return null
 				}
 
-				if (password !== user.password) {
+				// Переходный вход: в базе может лежать ещё открытый пароль (облако до прогона
+				// polziks-schema.sql, свежий дамп) — сравниваем как раньше и сразу хешируем
+				const hashed = isPasswordHash(user.password)
+				const valid = hashed
+					? await bcrypt.compare(password, user.password)
+					: password === user.password
+
+				if (!valid) {
 					console.warn('[auth] неверный пароль для:', email)
 					return null
+				}
+
+				if (!hashed) {
+					// Вход уже удался — ошибка записи хеша его не отменяет, хеш запишется при следующем входе
+					try {
+						await rehashPassword(user.id, password)
+					} catch (error) {
+						console.error('[auth] не удалось записать хеш пароля для:', email, error)
+					}
 				}
 
 				return {

@@ -1,6 +1,7 @@
 import 'server-only'
 import { createClient } from '@supabase/supabase-js'
 import { PostgrestClient } from '@supabase/postgrest-js'
+import bcrypt from 'bcryptjs'
 import { normalizeEmail } from './utils'
 
 // Только сервер: service role обходит RLS, поэтому ключ не должен попасть в браузер.
@@ -216,17 +217,40 @@ export async function fetchPointsActions(){
 // Проверка fetchUserByEmail до вставки не атомарна — гонку закрывает только база
 export const isEmailTakenError = error => error?.code === '23505'
 
+// Пароль хранится bcrypt-хешем, cost 10 — как в polziks-schema.sql
+// (extensions.crypt(password, extensions.gen_salt('bf', 10))); bcryptjs принимает и его хеши $2a$
+const BCRYPT_COST = 10
+
+export const isPasswordHash = value => /^\$2[aby]\$/.test(String(value ?? ''))
+
+const hashPassword = password => bcrypt.hash(password, BCRYPT_COST)
+
+// Переходный вход: пароль в базе ещё открытым текстом (база не мигрирована, дамп из облака),
+// сотрудник только что вошёл им — записываем хеш. Только если в строке всё ещё тот же открытый
+// пароль: параллельный вход или прогон схемы могли записать хеш раньше
+export async function rehashPassword( id, password ) {
+	const { error } = await db()
+		.from('users')
+		.update({ password: await hashPassword(password) })
+		.eq('id', id)
+		.eq('password', password)
+
+	if (error) throw error
+}
+
 export async function createUser( name, email, password, role ) {
+	// Хешируем здесь, а не у вызывающих: так хеш получают и форма, и ensureAdmin
 	const { data: response, error } = await db()
 		.from('users')
 		.insert({
 			name,
 			email: normalizeEmail(email),
-			password,
+			password: await hashPassword(password),
 			role,
 			balance: 0,
 		})
-		.select()
+		// Без password: ответ actionCreateUser уходит в браузер
+		.select(PUBLIC_USER_FIELDS)
 
 	if (error) throw error
 

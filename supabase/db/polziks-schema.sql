@@ -72,3 +72,12 @@ END
 $$;
 
 CREATE UNIQUE INDEX IF NOT EXISTS users_email_lower_key ON public.users (lower(email));
+
+-- ---------- Пароли bcrypt-хешем (ТЗ 1.01) ----------
+-- Хешируем только то, что ещё не bcrypt: повторный прогон даёт UPDATE 0. Cost 10 — как в коде
+-- (createUser в app/lib/data.js), bcryptjs при входе принимает хеши pgcrypto ($2a$).
+-- Пустой пароль не трогаем: вход с пустым паролем код не пускает и так.
+-- Необратимо: открытые пароли после этого не прочитать — выгрузить users до прогона.
+UPDATE public.users
+SET password = extensions.crypt(password, extensions.gen_salt('bf', 10))
+WHERE password <> '' AND password !~ '^\$2[aby]\$';

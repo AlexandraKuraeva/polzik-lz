@@ -50,12 +50,15 @@ fi
 docker compose cp "$DUMP" db:/tmp/polziks-dump.sql
 
 # Одной транзакцией: при любой ошибке база останется как была.
-# После дампа заново выдаём права и включаем RLS (polziks-access.sql).
+# После дампа — схема (polziks-schema.sql): дамп из немигрированной базы несёт открытые пароли
+# и не несёт индекса email, хешируем и проверяем дубли сразу. Затем заново выдаём права
+# и включаем RLS (polziks-access.sql).
 # От supabase_admin: дамп меняет права по умолчанию и для этой роли, у postgres на это нет прав.
 docker compose exec -T db psql -U supabase_admin -d postgres -q \
 	-v ON_ERROR_STOP=1 --single-transaction \
 	-c 'DROP SCHEMA public CASCADE;' \
 	-f /tmp/polziks-dump.sql \
+	-f /docker-entrypoint-initdb.d/migrations/99-polziks-1-schema.sql \
 	-f /docker-entrypoint-initdb.d/migrations/99-polziks-2-access.sql
 
 docker compose exec -T db rm -f /tmp/polziks-dump.sql
